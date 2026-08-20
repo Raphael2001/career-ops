@@ -10,9 +10,25 @@ jobs:
     runs-on: [self-hosted, career-ops]
     steps:
       - name: Pull latest and rebuild
+        env:
+          NVIDIA_API_KEY: ${{ secrets.NVIDIA_API_KEY }}
+          LITELLM_MASTER_KEY: ${{ secrets.LITELLM_MASTER_KEY }}
         run: |
           cd ~/career-ops
           git fetch origin main
           git reset --hard origin/main
+
+          # Sync secrets into .env (repo secrets -> host .env), leaving any
+          # other lines untouched. No-op for a key that isn't set as a
+          # repo secret, so .env keeps whatever was there before.
+          touch .env
+          for key in NVIDIA_API_KEY LITELLM_MASTER_KEY; do
+            value="${!key}"
+            [ -z "$value" ] && continue
+            grep -v "^${key}=" .env > .env.tmp || true
+            echo "${key}=${value}" >> .env.tmp
+            mv .env.tmp .env
+          done
+
           ./cops rebuild
           ./cops doctor
