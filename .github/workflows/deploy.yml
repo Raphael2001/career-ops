@@ -1,0 +1,18 @@
+name: Deploy to linux-claw
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, career-ops]
+    steps:
+      - name: Pull latest and rebuild
+        run: |
+          cd ~/career-ops
+          git fetch origin main
+          git reset --hard origin/main
+          ./cops rebuild
+          ./cops doctor

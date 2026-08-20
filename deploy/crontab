@@ -1,0 +1,10 @@
+# career-ops cron jobs for linux-claw.
+# Install with: crontab deploy/crontab   (run as the `claw` user, from ~/career-ops)
+# View installed jobs with: crontab -l
+# Remove with: crontab -r
+#
+# Runs every Monday 06:00 local time (server timezone). Logs to
+# ~/career-ops/deploy/discover.log so failures survive after cron discards
+# stdout/stderr.
+
+0 6 * * 1 cd /home/claw/career-ops && ./deploy/discover-companies.sh >> /home/claw/career-ops/deploy/discover.log 2>&1
