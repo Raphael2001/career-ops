@@ -5,7 +5,7 @@
 set -euo pipefail
 
 cd /app/web
-if [ ! -d node_modules ] || [ package.json -nt node_modules ]; then
+if [ ! -x node_modules/.bin/next ]; then
   npm ci --no-audit --no-fund
 fi
 npm run build
