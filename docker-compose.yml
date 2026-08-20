@@ -6,15 +6,21 @@ services:
     image: career-ops:local
     container_name: career-ops
     working_dir: /app
-    # Long-running shell so `docker compose exec` is instant.
-    command: ["tail", "-f", "/dev/null"]
+    # Builds + starts the web UI in the background, then keeps a long-running
+    # shell so `docker compose exec` (via ./cops) stays instant for CLI tasks.
+    command: ["/app/deploy/container-start.sh"]
     init: true
+    # Host 4000 -> container 3000 (the web app's own `next start` port).
+    # Not host port 3000 so it doesn't collide with other services on the box.
+    ports:
+      - "4000:3000"
     # Mount whole project so edits on host are visible inside the container.
     # node_modules is kept inside the image to avoid host/container ABI mismatch
     # (host is ubuntu26.04 where playwright won't install; image is jammy).
     volumes:
       - .:/app
       - career-ops-node-modules:/app/node_modules
+      - career-ops-web-node-modules:/app/web/node_modules
     environment:
       - NODE_ENV=development
       - PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
@@ -31,3 +37,4 @@ services:
 
 volumes:
   career-ops-node-modules:
+  career-ops-web-node-modules:
