@@ -35,6 +35,24 @@ services:
     stdin_open: true
     restart: unless-stopped
 
+  # Fronts NVIDIA NIM's free-tier Nemotron model behind an Anthropic-compatible
+  # /v1/messages endpoint so `claude` (Claude Code CLI) can run headless
+  # (cron jobs, discover-companies.sh) without burning Anthropic credits. See
+  # deploy/litellm/README.md. Only used when career-ops explicitly points at
+  # it (ANTHROPIC_BASE_URL) -- doesn't affect a normal logged-in `claude`.
+  litellm:
+    image: ghcr.io/berriai/litellm:main-stable
+    container_name: career-ops-litellm
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    ports:
+      - "4001:4000"
+    volumes:
+      - ./deploy/litellm/config.yaml:/app/config.yaml:ro
+    environment:
+      - NVIDIA_API_KEY=${NVIDIA_API_KEY:-}
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-}
+    restart: unless-stopped
+
 volumes:
   career-ops-node-modules:
   career-ops-web-node-modules:

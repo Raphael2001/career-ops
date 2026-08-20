@@ -1,0 +1,20 @@
+# LiteLLM proxy config -- fronts NVIDIA NIM's free-tier Nemotron model behind
+# an Anthropic-compatible /v1/messages endpoint, so `claude` (Claude Code CLI)
+# can point ANTHROPIC_BASE_URL at this proxy instead of api.anthropic.com.
+#
+# NVIDIA_API_KEY is read from the environment (set in .env on the host, never
+# committed). See deploy/litellm/README.md for how to point Claude Code at
+# this proxy once it's running.
+
+model_list:
+  - model_name: nemotron-lightning
+    litellm_params:
+      model: nvidia_nim/nvidia/nemotron-3.5-lightning-30b-a3b
+      api_key: os.environ/NVIDIA_API_KEY
+      api_base: https://integrate.api.nvidia.com/v1
+
+litellm_settings:
+  drop_params: true
+
+general_settings:
+  master_key: os.environ/LITELLM_MASTER_KEY
