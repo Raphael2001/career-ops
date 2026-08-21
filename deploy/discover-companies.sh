@@ -26,6 +26,20 @@ SERVICE=career-ops
 LOG_PREFIX="[discover-companies $(date -u +%Y-%m-%dT%H:%M:%SZ)]"
 echo "$LOG_PREFIX starting"
 
+cleanup_browser() {
+  # A `timeout`-killed claude-headless.sh call only kills the direct child;
+  # the node/npx/playwright-mcp/chrome tree it spawned can orphan and hang
+  # around holding CPU (and, without --isolated, a shared profile lock that
+  # blocks the NEXT call from starting). Best-effort sweep, safe to run even
+  # when nothing needs cleaning.
+  docker compose exec -T "$SERVICE" sh -c \
+    'pkill -9 -f "playwright-mcp|chrome.*ms-playwright-mcp|claude --print" 2>/dev/null; true' \
+    >/dev/null 2>&1 || true
+}
+
+echo "$LOG_PREFIX pre-run cleanup (in case a previous run left orphans)"
+cleanup_browser
+
 TMP_COMPANIES="$(mktemp /tmp/career-ops-companies-XXXX.yml)"
 TMP_SEARCH="$(mktemp /tmp/career-ops-search-XXXX.yml)"
 trap 'rm -f "$TMP_COMPANIES" "$TMP_SEARCH"' EXIT
@@ -52,6 +66,7 @@ companies:
   - name: "Example Corp"
   - name: "Another Inc"
 If you find none, output exactly: companies: []' > "$TMP_SEARCH" 2>/dev/null; then
+  cleanup_browser
   if grep -q '^\s*-\s*name:' "$TMP_SEARCH"; then
     echo "$LOG_PREFIX resolving ATS for search-pass candidates"
     docker compose cp "$TMP_SEARCH" "$SERVICE:/tmp/discover-search.yml"
@@ -62,6 +77,7 @@ If you find none, output exactly: companies: []' > "$TMP_SEARCH" 2>/dev/null; th
   fi
 else
   echo "$LOG_PREFIX search pass failed or timed out (non-fatal, continuing)"
+  cleanup_browser
 fi
 
 # -- 2. Per-company headless Level-1 (Playwright) scan of the no-ATS tier --
@@ -72,10 +88,11 @@ docker compose exec -T "$SERVICE" node deploy/list-websearch-companies.mjs | whi
   url="$(echo "$line" | jq -r '.careers_url')"
   company_count=$((company_count + 1))
   echo "$LOG_PREFIX [$company_count] $name"
-  timeout 90 docker compose exec -T "$SERVICE" deploy/claude-headless.sh \
+  timeout 180 docker compose exec -T "$SERVICE" deploy/claude-headless.sh \
     "Company: $name. Careers page: $url. Use Playwright to visit that URL and look for open roles matching portals.yml's title_filter.positive keywords (Full Stack, Backend, Software Engineer, etc.), excluding title_filter.negative matches, in a location passing portals.yml's location_filter (Israel / Tel Aviv / Ramat Gan / Herzliya / Petah Tikva / remote). Check data/pipeline.md's existing entries for the exact row format scan.mjs uses, then Edit that file to append any matching, currently-live posting you find in that same format -- do not change anything else in the file. If nothing matches, do nothing and just confirm you checked." \
     2>/dev/null \
     || echo "$LOG_PREFIX   -> failed/timed out for $name, continuing"
+  cleanup_browser
 done
 
 # -- 3. Normal zero-token scan --
