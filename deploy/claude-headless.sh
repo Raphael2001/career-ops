@@ -21,7 +21,7 @@ shift
 
 export ANTHROPIC_BASE_URL="http://litellm:4000"
 export ANTHROPIC_API_KEY="$LITELLM_MASTER_KEY"
-# Override with e.g. `CLAUDE_HEADLESS_MODEL=kimi-agent deploy/claude-headless.sh ...`
+# Override with e.g. `CLAUDE_HEADLESS_MODEL=agent-model deploy/claude-headless.sh ...`
 # for genuinely agentic, multi-step tool-use tasks -- see deploy/litellm/config.yaml
 # for what's available and why you'd pick one over the other.
 export ANTHROPIC_MODEL="${CLAUDE_HEADLESS_MODEL:-nemotron-lightning}"

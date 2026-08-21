@@ -94,10 +94,10 @@ docker compose exec -T "$SERVICE" node deploy/list-websearch-companies.mjs | whi
   # what made this reliable -- asking the model to also read the file
   # format and Edit it consistently pushed the task past what it could
   # finish in any reasonable timeout.
-  # kimi-agent, not nemotron-lightning: this step needs genuine multi-step
+  # agent-model, not nemotron-lightning: this step needs genuine multi-step
   # tool orchestration (navigate, find listings, filter, extract) -- the
   # task shape nemotron-lightning kept hanging on even when simplified.
-  result="$(timeout 240 docker compose exec -T -e CLAUDE_HEADLESS_MODEL=kimi-agent "$SERVICE" deploy/claude-headless.sh \
+  result="$(timeout 240 docker compose exec -T -e CLAUDE_HEADLESS_MODEL=agent-model "$SERVICE" deploy/claude-headless.sh \
     "Company: $name. Careers page: $url. Use Playwright to visit that URL. Find open roles matching portals.yml's title_filter.positive keywords (Full Stack, Backend, Software Engineer, etc.), excluding title_filter.negative matches, in a location passing portals.yml's location_filter (Israel / Tel Aviv / Ramat Gan / Herzliya / Petah Tikva / remote). Output ONLY raw JSON, nothing else -- no commentary, no markdown fences: {\"jobs\":[{\"url\":\"...\",\"title\":\"...\",\"location\":\"...\"}]}. If nothing matches, output exactly: {\"jobs\":[]}" \
     2>/dev/null)" || result=""
   cleanup_browser
