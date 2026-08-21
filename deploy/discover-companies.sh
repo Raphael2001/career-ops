@@ -32,9 +32,14 @@ cleanup_browser() {
   # around holding CPU (and, without --isolated, a shared profile lock that
   # blocks the NEXT call from starting). Best-effort sweep, safe to run even
   # when nothing needs cleaning.
+  #
+  # < /dev/null matters here too (see the per-company loop below): this gets
+  # called INSIDE that while loop, and without it, this exec call -- having
+  # no stdin of its own -- silently drains the loop's process-substituted
+  # company-list stdin, killing the loop after exactly 1 iteration.
   docker compose exec -T "$SERVICE" sh -c \
     'pkill -9 -f "playwright-mcp|chrome.*ms-playwright-mcp|claude --print" 2>/dev/null; true' \
-    >/dev/null 2>&1 || true
+    >/dev/null 2>&1 < /dev/null || true
 }
 
 echo "$LOG_PREFIX pre-run cleanup (in case a previous run left orphans)"

@@ -12,9 +12,15 @@ LOG_PREFIX="[level1-only $(date -u +%Y-%m-%dT%H:%M:%SZ)]"
 echo "$LOG_PREFIX starting"
 
 cleanup_browser() {
+  # < /dev/null matters here: this runs INSIDE the per-company while loop
+  # below, and without it this exec call -- having no stdin of its own --
+  # inherits the loop's stdin (the process-substituted company list) and
+  # silently drains it, killing the loop after exactly 1 iteration. Verified
+  # by isolating this function alone in a stub loop (no Playwright/claude
+  # involved at all) and watching it die at company 1 too.
   docker compose exec -T "$SERVICE" sh -c \
     'pkill -9 -f "playwright-mcp|chrome.*ms-playwright-mcp|claude --print" 2>/dev/null; true' \
-    >/dev/null 2>&1 || true
+    >/dev/null 2>&1 < /dev/null || true
 }
 
 company_count=0
