@@ -1,10 +1,20 @@
-# career-ops cron jobs for linux-claw.
+# HOST-level cron jobs for linux-claw.
 # Install with: crontab deploy/crontab   (run as the `claw` user, from ~/career-ops)
 # View installed jobs with: crontab -l
 # Remove with: crontab -r
 #
-# Runs every Monday 06:00 local time (server timezone). Logs to
-# ~/career-ops/deploy/discover.log so failures survive after cron discards
-# stdout/stderr.
+# The discovery/scanning itself now runs on ITS OWN schedule INSIDE the
+# career-ops container (deploy/container-crontab, loaded automatically by
+# container-start.sh -- part of the Docker config, no separate install step
+# needed for that half). This host crontab now only carries the git
+# commit+push step (deploy/git-sync-portals.sh), which needs the host's SSH
+# deploy key and so can't run inside the container. Daily, not weekly: it's
+# fast (no scanning), and picks up whatever the container's weekly run
+# produced without a week-long wait to push it.
+#
+# deploy/discover-companies.sh (the older host-triggered, docker-compose-exec
+# version) still exists for manually triggering a full run from the host in
+# one shot -- just isn't on this schedule anymore, to avoid running the
+# discovery twice (once in-container, once via this host script).
 
-0 6 * * 1 cd /home/claw/career-ops && ./deploy/discover-companies.sh >> /home/claw/career-ops/deploy/discover.log 2>&1
+0 8 * * * cd /home/claw/career-ops && ./deploy/git-sync-portals.sh >> /home/claw/career-ops/deploy/discover.log 2>&1

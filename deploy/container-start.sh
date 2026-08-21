@@ -18,4 +18,22 @@ NODE_ENV=production npm run build
 NODE_ENV=production npm run start -- -p 3000 -H 0.0.0.0 &
 
 cd /app
+# Weekly discovery cron, loaded from the repo (part of the Docker config
+# itself -- no separate host-side `crontab deploy/crontab` step needed for
+# this half). See deploy/container-crontab and deploy/discover-companies-native.sh.
+#
+# cron jobs do NOT inherit the environment of the process that installed the
+# crontab -- they run with a minimal one cron constructs itself (roughly just
+# PATH/HOME/SHELL/LOGNAME). discover-companies-native.sh needs
+# LITELLM_MASTER_KEY (via claude-headless.sh) and a real PATH (node/npm/claude
+# aren't on cron's default minimal one), so those get written as VAR=value
+# lines into root's actual crontab spool (an ephemeral, container-local file,
+# never the git-tracked deploy/container-crontab) ahead of the job entries.
+{
+  echo "PATH=$PATH"
+  echo "LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-}"
+  cat deploy/container-crontab
+} | crontab -
+cron
+
 exec tail -f /dev/null

@@ -1,0 +1,12 @@
+# Loaded into root's crontab INSIDE the career-ops container by
+# container-start.sh -- part of the Docker config itself, so a fresh deploy
+# (git clone + docker compose up) needs no separate `crontab deploy/crontab`
+# step on the host.
+#
+# Runs every Monday 06:00 UTC (container's clock; Docker containers default
+# to UTC regardless of host timezone -- adjust the hour here if you want
+# local time). No credentials needed for this job: it only writes to files
+# already bind-mounted from the host. See deploy/git-sync-portals.sh (a
+# HOST-level cron job) for the git commit+push half.
+
+0 6 * * 1 cd /app && ./deploy/discover-companies-native.sh >> /app/deploy/discover.log 2>&1
