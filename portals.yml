@@ -85,7 +85,6 @@ location_filter:
     - "Israel"
     - "Tel Aviv"
   allow:
-    - "Remote"
     - "Israel"
     - "Tel Aviv"
     - "Ramat Gan"
