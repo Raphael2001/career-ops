@@ -16,7 +16,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 ARG GO_VERSION=1.23.4
 RUN set -eux; \
     apt-get update; \
-    apt-get install -y --no-install-recommends ca-certificates curl git tini cron latexmk texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended texlive-xetex; \
+    apt-get install -y --no-install-recommends ca-certificates curl git tini cron jq latexmk texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended texlive-xetex; \
     arch="$(dpkg --print-architecture)"; \
     case "$arch" in \
       amd64)  go_arch=amd64 ;; \
