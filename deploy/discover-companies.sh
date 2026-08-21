@@ -83,7 +83,15 @@ fi
 # -- 2. Per-company headless Level-1 (Playwright) scan of the no-ATS tier --
 echo "$LOG_PREFIX headless Level-1 (Playwright) scan, one company per call"
 company_count=0
-docker compose exec -T "$SERVICE" node deploy/list-websearch-companies.mjs | while IFS= read -r line; do
+# `< <(...)` (process substitution), NOT `... | while read`: a plain pipe
+# puts the loop in a subshell whose stdin IS the company list -- and the
+# claude-headless.sh call inside the loop body, having no stdin of its own
+# specified, silently drains THAT SAME stream instead of the prompt it
+# actually needs, so the loop dies after exactly 1 iteration with no error.
+# `< /dev/null` on both exec calls below is belt-and-suspenders: even with
+# process substitution, a command with no explicit stdin still inherits fd 0
+# from its caller by default.
+while IFS= read -r line; do
   name="$(echo "$line" | jq -r '.name')"
   url="$(echo "$line" | jq -r '.careers_url')"
   company_count=$((company_count + 1))
@@ -105,18 +113,24 @@ docker compose exec -T "$SERVICE" node deploy/list-websearch-companies.mjs | whi
   # unpredictable extra time. 600s leaves real headroom above the ~260s a
   # clean run takes.
   result="$(timeout 600 docker compose exec -T -e CLAUDE_HEADLESS_MODEL=agent-model "$SERVICE" deploy/claude-headless.sh \
-    "Company: $name. Careers page: $url. Use Playwright to visit that URL. Find open roles matching portals.yml's title_filter.positive keywords (Full Stack, Backend, Software Engineer, etc.), excluding title_filter.negative matches, in a location passing portals.yml's location_filter (Israel / Tel Aviv / Ramat Gan / Herzliya / Petah Tikva / remote). Output ONLY raw JSON, nothing else -- no commentary, no markdown fences: {\"jobs\":[{\"url\":\"...\",\"title\":\"...\",\"location\":\"...\"}]}. If nothing matches, output exactly: {\"jobs\":[]}" \
-    2>/dev/null)" || result=""
+    "Company: $name. Careers page: $url. Use Playwright to visit that URL. Find open roles matching portals.yml's title_filter.positive keywords (Full Stack, Backend, Software Engineer, etc.), excluding title_filter.negative matches, in a location passing portals.yml's location_filter (Israel / Tel Aviv / Ramat Gan / Herzliya / Petah Tikva / remote). Also check whether the page's job listings are served via Comeet (look for network requests or an iframe/script src pointing at www.comeet.co/careers-api/2.0/company/.../positions -- often visible by viewing the page source or the embedded widget's src attribute). Output ONLY raw JSON, nothing else -- no commentary, no markdown fences: {\"jobs\":[{\"url\":\"...\",\"title\":\"...\",\"location\":\"...\"}],\"comeet_api_url\":\"...\"}. Omit comeet_api_url entirely if you don't find one. If no jobs match, still output the object with an empty jobs array." \
+    2>/dev/null < /dev/null)" || result=""
   cleanup_browser
   if [ -z "$result" ]; then
     echo "$LOG_PREFIX   -> failed/timed out for $name"
   elif echo "$result" | jq -e '.jobs' >/dev/null 2>&1; then
     echo "$result" | jq --arg company "$name" '.jobs |= map(. + {company: $company})' \
-      | docker compose exec -T "$SERVICE" node deploy/append-pipeline-entry.mjs
+      | docker compose exec -T "$SERVICE" node deploy/append-pipeline-entry.mjs < /dev/null
+    comeet_url="$(echo "$result" | jq -r '.comeet_api_url // empty')"
+    if [ -n "$comeet_url" ]; then
+      echo "$LOG_PREFIX   -> found Comeet API for $name, upgrading portals.yml"
+      echo "$result" | jq --arg company "$name" '{company: $company, comeet_api_url: .comeet_api_url}' \
+        | docker compose exec -T "$SERVICE" node deploy/upgrade-to-comeet.mjs < /dev/null
+    fi
   else
     echo "$LOG_PREFIX   -> non-JSON output for $name, skipping"
   fi
-done
+done < <(docker compose exec -T "$SERVICE" node deploy/list-websearch-companies.mjs < /dev/null)
 
 # -- 3. Normal zero-token scan --
 echo "$LOG_PREFIX running zero-token scan"
