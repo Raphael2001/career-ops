@@ -15,6 +15,18 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# At the observed pace (~6min/company worst-case-inclusive), a full 122-company
+# pass can run close to a day -- with cron now daily, a slow run and the next
+# day's kickoff can genuinely overlap. flock (not just a pidfile) makes a
+# second concurrent invocation exit immediately instead of running two
+# browsers/loops against the same portals.yml at once.
+LOCK_FILE="/tmp/discover-companies-native.lock"
+exec 9>"$LOCK_FILE"
+if ! flock -n 9; then
+  echo "[discover-native $(date -u +%Y-%m-%dT%H:%M:%SZ)] already running (lock held), skipping this run"
+  exit 0
+fi
+
 LOG_PREFIX="[discover-native $(date -u +%Y-%m-%dT%H:%M:%SZ)]"
 echo "$LOG_PREFIX starting"
 

@@ -3,10 +3,13 @@
 # (git clone + docker compose up) needs no separate `crontab deploy/crontab`
 # step on the host.
 #
-# Runs every Monday 06:00 UTC (container's clock; Docker containers default
-# to UTC regardless of host timezone -- adjust the hour here if you want
-# local time). No credentials needed for this job: it only writes to files
-# already bind-mounted from the host. See deploy/git-sync-portals.sh (a
-# HOST-level cron job) for the git commit+push half.
+# Runs daily at 00:00 Asia/Jerusalem (21:00 UTC -- containers run on UTC
+# regardless of host timezone, so the hour here is the UTC equivalent of
+# local midnight; re-derive if Israel's DST offset changes). No credentials
+# needed for this job: it only writes to files already bind-mounted from the
+# host. See deploy/git-sync-portals.sh (a HOST-level cron job) for the git
+# commit+push half. A `flock` in discover-companies-native.sh itself skips a
+# run if the previous day's is still going (full 122-company pass can take
+# most of a day at the observed per-company pace).
 
-0 6 * * 1 cd /app && ./deploy/discover-companies-native.sh >> /app/deploy/discover.log 2>&1
+0 21 * * * cd /app && ./deploy/discover-companies-native.sh >> /app/deploy/discover.log 2>&1

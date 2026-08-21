@@ -16,7 +16,17 @@ jobs:
         run: |
           cd ~/career-ops
           git fetch origin main
+
+          # portals.yml (tracked in git) gets written to live by the
+          # in-container discovery cron -- a plain `reset --hard` here would
+          # silently discard whatever it's found mid-run (this actually
+          # happened once: a deploy landed while a scan was upgrading
+          # companies to real ATS APIs, and reset --hard wiped all of it
+          # before it ever got committed). Stash any uncommitted local
+          # changes first, reset to the new code, then reapply them on top.
+          git stash push -u -m "pre-deploy $(date -u +%Y-%m-%dT%H:%M:%SZ)"
           git reset --hard origin/main
+          git stash pop || echo "::warning::stash pop failed or had nothing to pop -- check 'git stash list' on the server"
 
           # Sync secrets into .env (repo secrets -> host .env), leaving any
           # other lines untouched. No-op for a key that isn't set as a
