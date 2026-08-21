@@ -1,0 +1,62 @@
+name: Sync upstream changes
+
+on:
+  schedule:
+    # Monday, 08:00 UTC. The workflow can also be run from the Actions tab.
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
+
+# This workflow deliberately opens a reviewable PR instead of changing main.
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out fork main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Fetch upstream
+        run: |
+          git remote add upstream https://github.com/santifer/career-ops.git
+          git fetch origin main automation/sync-upstream || true
+          git fetch upstream main
+
+      - name: Check whether an update is needed
+        id: changes
+        run: |
+          if git merge-base --is-ancestor upstream/main origin/main; then
+            echo "needed=false" >> "$GITHUB_OUTPUT"
+            echo "Fork already contains upstream/main."
+          else
+            echo "needed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create or update sync branch
+        if: steps.changes.outputs.needed == 'true'
+        run: |
+          git config user.name "career-ops sync bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C automation/sync-upstream origin/main
+          git merge --no-edit upstream/main
+          git push --force-with-lease origin HEAD:automation/sync-upstream
+
+      - name: Open pull request
+        if: steps.changes.outputs.needed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh pr list --head automation/sync-upstream --base main --state open --json number --jq 'length' | grep -qx '0'; then
+            gh pr create \
+              --base main \
+              --head automation/sync-upstream \
+              --title "chore: sync upstream career-ops" \
+              --body "Automated weekly sync from [santifer/career-ops](https://github.com/santifer/career-ops). Review the diff and merge when ready."
+          else
+            echo "Updated the existing upstream-sync pull request."
+          fi
