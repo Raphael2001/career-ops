@@ -23,9 +23,17 @@ company_count=0
 # claude-headless.sh call inside the loop body, having no stdin of its own
 # specified, silently drained THAT SAME stream instead of the prompt it
 # actually needed. First run processed exactly 1 company then exited clean
-# (no error -- just silently out of input). `< /dev/null` on the exec call
-# below is belt-and-suspenders: even with process substitution, a command
+# (no error -- just silently out of input). `< /dev/null` on THAT ONE exec
+# call is belt-and-suspenders: even with process substitution, a command
 # with no explicit stdin still inherits fd 0 from its caller by default.
+#
+# The append-pipeline-entry.mjs / upgrade-to-comeet.mjs calls below are
+# different -- they're each fed by their own `echo ... | jq ... | docker
+# compose exec ...` pipe, and stdin IS how they receive their JSON payload.
+# A second run added `< /dev/null` there too "for consistency" and broke
+# both silently (append-pipeline-entry errored "Unexpected end of JSON
+# input" -- the redirect overrides the pipe, not falls back to it). Only
+# add `< /dev/null` to a command that has no pipe already feeding it.
 while IFS= read -r line; do
   name="$(echo "$line" | jq -r '.name')"
   url="$(echo "$line" | jq -r '.careers_url')"
@@ -39,12 +47,12 @@ while IFS= read -r line; do
     echo "$LOG_PREFIX   -> failed/timed out for $name"
   elif echo "$result" | jq -e '.jobs' >/dev/null 2>&1; then
     echo "$result" | jq --arg company "$name" '.jobs |= map(. + {company: $company})' \
-      | docker compose exec -T "$SERVICE" node deploy/append-pipeline-entry.mjs < /dev/null
+      | docker compose exec -T "$SERVICE" node deploy/append-pipeline-entry.mjs
     comeet_url="$(echo "$result" | jq -r '.comeet_api_url // empty')"
     if [ -n "$comeet_url" ]; then
       echo "$LOG_PREFIX   -> found Comeet API for $name, upgrading portals.yml"
       echo "$result" | jq --arg company "$name" '{company: $company, comeet_api_url: .comeet_api_url}' \
-        | docker compose exec -T "$SERVICE" node deploy/upgrade-to-comeet.mjs < /dev/null
+        | docker compose exec -T "$SERVICE" node deploy/upgrade-to-comeet.mjs
     fi
   else
     echo "$LOG_PREFIX   -> non-JSON output for $name, skipping"

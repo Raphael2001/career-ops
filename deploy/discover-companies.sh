@@ -88,9 +88,13 @@ company_count=0
 # claude-headless.sh call inside the loop body, having no stdin of its own
 # specified, silently drains THAT SAME stream instead of the prompt it
 # actually needs, so the loop dies after exactly 1 iteration with no error.
-# `< /dev/null` on both exec calls below is belt-and-suspenders: even with
-# process substitution, a command with no explicit stdin still inherits fd 0
-# from its caller by default.
+# `< /dev/null` on the claude-headless.sh call below is belt-and-suspenders
+# (a command with no explicit stdin still inherits fd 0 from its caller even
+# under process substitution) -- but NOT on append-pipeline-entry.mjs /
+# upgrade-to-comeet.mjs further down, which are each fed by their own
+# `echo ... | jq ... | docker compose exec ...` pipe: `< /dev/null` there
+# overrides that pipe instead of falling back to it, and silently breaks
+# both ("Unexpected end of JSON input" -- found the hard way).
 while IFS= read -r line; do
   name="$(echo "$line" | jq -r '.name')"
   url="$(echo "$line" | jq -r '.careers_url')"
@@ -120,12 +124,12 @@ while IFS= read -r line; do
     echo "$LOG_PREFIX   -> failed/timed out for $name"
   elif echo "$result" | jq -e '.jobs' >/dev/null 2>&1; then
     echo "$result" | jq --arg company "$name" '.jobs |= map(. + {company: $company})' \
-      | docker compose exec -T "$SERVICE" node deploy/append-pipeline-entry.mjs < /dev/null
+      | docker compose exec -T "$SERVICE" node deploy/append-pipeline-entry.mjs
     comeet_url="$(echo "$result" | jq -r '.comeet_api_url // empty')"
     if [ -n "$comeet_url" ]; then
       echo "$LOG_PREFIX   -> found Comeet API for $name, upgrading portals.yml"
       echo "$result" | jq --arg company "$name" '{company: $company, comeet_api_url: .comeet_api_url}' \
-        | docker compose exec -T "$SERVICE" node deploy/upgrade-to-comeet.mjs < /dev/null
+        | docker compose exec -T "$SERVICE" node deploy/upgrade-to-comeet.mjs
     fi
   else
     echo "$LOG_PREFIX   -> non-JSON output for $name, skipping"
