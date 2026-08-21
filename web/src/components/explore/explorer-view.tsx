@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Compass, ChevronDown, RotateCcw, AlertTriangle, Sparkles, Settings } from "lucide-react";
+import { Compass, ChevronDown, RotateCcw, AlertTriangle, Sparkles, Save, Settings } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { instrumentSerif } from "@/lib/fonts";
@@ -48,6 +48,35 @@ export function ExplorerView({
   const [refineOpen, setRefineOpen] = useState(false);
   const [cli, setCli] = useState<{ id: string | null; name?: string }>({ id: null });
   const [firstRun, setFirstRun] = useState(false);
+  const [savingDefaults, setSavingDefaults] = useState(false);
+  const [saveNotice, setSaveNotice] = useState("");
+
+  const saveDefaults = async () => {
+    setSavingDefaults(true);
+    setSaveNotice("");
+    try {
+      const response = await fetch("/api/portals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          roles: filters.positive,
+          negative: filters.negative,
+          locationFilter: {
+            allow: filters.allow,
+            block: filters.block,
+            alwaysAllow: filters.alwaysAllow,
+            blockHard: filters.blockHard,
+          },
+        }),
+      });
+      if (!response.ok) throw new Error();
+      setSaveNotice("Saved to portals.yml");
+    } catch {
+      setSaveNotice("Could not save defaults");
+    } finally {
+      setSavingDefaults(false);
+    }
+  };
 
   useEffect(() => {
     try {
@@ -176,7 +205,7 @@ export function ExplorerView({
               {refineOpen && (
                 <div className="space-y-4 border-t border-border p-4">
                   <FilterBuilder filters={filters} onChange={setFilters} seededFrom={seed.seededFrom} />
-                  <DiscoverBar canDiscover={canDiscover} onDiscover={discover} label="Re-cast (free)" />
+                  <DiscoverBar canDiscover={canDiscover} onDiscover={discover} label="Re-cast (free)" onSave={saveDefaults} saving={savingDefaults} saveNotice={saveNotice} />
                 </div>
               )}
             </div>
@@ -184,7 +213,7 @@ export function ExplorerView({
             <div className="mb-6 rounded-2xl border border-border bg-surface/30 p-5">
               <FilterBuilder filters={filters} onChange={setFilters} seededFrom={seed.seededFrom} />
               <div className="mt-5">
-                <DiscoverBar canDiscover={canDiscover} onDiscover={discover} label="Discover (free)" />
+                <DiscoverBar canDiscover={canDiscover} onDiscover={discover} label="Discover (free)" onSave={saveDefaults} saving={savingDefaults} saveNotice={saveNotice} />
               </div>
             </div>
           )}
@@ -246,7 +275,21 @@ export function ExplorerView({
   );
 }
 
-function DiscoverBar({ canDiscover, onDiscover, label }: { canDiscover: boolean; onDiscover: () => void; label: string }) {
+function DiscoverBar({
+  canDiscover,
+  onDiscover,
+  label,
+  onSave,
+  saving,
+  saveNotice,
+}: {
+  canDiscover: boolean;
+  onDiscover: () => void;
+  label: string;
+  onSave?: () => void;
+  saving?: boolean;
+  saveNotice?: string;
+}) {
   return (
     <div className="flex flex-wrap items-center gap-3">
       <button
@@ -257,6 +300,17 @@ function DiscoverBar({ canDiscover, onDiscover, label }: { canDiscover: boolean;
       >
         <Compass className="size-4" /> {label}
       </button>
+      {onSave && (
+        <button
+          type="button"
+          disabled={saving || !canDiscover}
+          onClick={onSave}
+          className="inline-flex items-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm font-medium text-foreground transition-colors hover:bg-surface-hover disabled:opacity-50 max-sm:min-h-[44px]"
+        >
+          <Save className="size-4" /> {saving ? "Saving…" : "Save as defaults"}
+        </button>
+      )}
+      {saveNotice && <span className="text-xs text-muted">{saveNotice}</span>}
       <span className="inline-flex items-center gap-1.5 text-[12px] text-muted">
         <span className="size-1.5 rounded-full bg-emerald-500" />
         Evaluating a role later costs tokens. Discovering never does.

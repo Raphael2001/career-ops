@@ -17,14 +17,28 @@ function isObj(v: unknown): v is Record<string, unknown> {
   return !!v && typeof v === "object" && !Array.isArray(v);
 }
 
+type LocationFilterInput = {
+  allow?: string[];
+  block?: string[];
+  alwaysAllow?: string[];
+  blockHard?: string[];
+};
+
+function chips(value: unknown, limit = 24): string[] {
+  return (Array.isArray(value) ? value : [])
+    .map((item) => String(item).trim())
+    .filter(Boolean)
+    .slice(0, limit);
+}
+
 export async function POST(req: Request) {
-  let body: { roles?: string[]; location?: string[] };
+  let body: { roles?: string[]; negative?: string[]; location?: string[]; locationFilter?: LocationFilterInput };
   try {
-    body = (await req.json()) as { roles?: string[]; location?: string[] };
+    body = (await req.json()) as typeof body;
   } catch {
     return Response.json({ error: "bad json" }, { status: 400 });
   }
-  const roles = (Array.isArray(body.roles) ? body.roles : []).map((r) => String(r).trim()).filter(Boolean).slice(0, 24);
+  const roles = chips(body.roles);
   if (roles.length === 0) return Response.json({ error: "no roles" }, { status: 400 });
 
   const root = careerOpsRoot();
@@ -42,10 +56,18 @@ export async function POST(req: Request) {
 
   const tf = isObj(doc.title_filter) ? { ...doc.title_filter } : {};
   tf.positive = roles; // replace ONLY the positive keywords; keep negative/etc.
+  if (Array.isArray(body.negative)) tf.negative = chips(body.negative);
   doc.title_filter = tf;
-  if (Array.isArray(body.location) && body.location.length) {
+  if (body.locationFilter && typeof body.locationFilter === "object") {
     const lf = isObj(doc.location_filter) ? { ...doc.location_filter } : {};
-    lf.allow = body.location.map((l) => String(l).trim()).filter(Boolean);
+    if (Array.isArray(body.locationFilter.allow)) lf.allow = chips(body.locationFilter.allow);
+    if (Array.isArray(body.locationFilter.block)) lf.block = chips(body.locationFilter.block);
+    if (Array.isArray(body.locationFilter.alwaysAllow)) lf.always_allow = chips(body.locationFilter.alwaysAllow);
+    if (Array.isArray(body.locationFilter.blockHard)) lf.block_hard = chips(body.locationFilter.blockHard);
+    doc.location_filter = lf;
+  } else if (Array.isArray(body.location) && body.location.length) {
+    const lf = isObj(doc.location_filter) ? { ...doc.location_filter } : {};
+    lf.allow = chips(body.location);
     doc.location_filter = lf;
   }
 
