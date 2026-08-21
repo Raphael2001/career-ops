@@ -24,10 +24,12 @@ export ANTHROPIC_API_KEY="$LITELLM_MASTER_KEY"
 export ANTHROPIC_MODEL="nemotron-lightning"
 
 # --print: non-interactive, skips the workspace-trust dialog for --mcp-config.
-# --dangerously-skip-permissions: no human here to approve tool calls; this
-# container is the sandbox boundary (isolated, project-directory-scoped).
+# --dangerously-skip-permissions refuses to run as root, and this container
+# runs as root by default (see DOCKER.md) -- so no human-approval flag here
+# either way. Scope with --allowedTools instead: no permission prompts to
+# block on, but also nothing outside this explicit list.
 exec claude --print \
   --mcp-config deploy/mcp-config.json \
-  --dangerously-skip-permissions \
+  --allowedTools "Bash Read Write Edit Grep Glob mcp__playwright__*" \
   "$@" \
   "$PROMPT"
