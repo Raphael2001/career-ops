@@ -88,11 +88,24 @@ docker compose exec -T "$SERVICE" node deploy/list-websearch-companies.mjs | whi
   url="$(echo "$line" | jq -r '.careers_url')"
   company_count=$((company_count + 1))
   echo "$LOG_PREFIX [$company_count] $name"
-  timeout 180 docker compose exec -T "$SERVICE" deploy/claude-headless.sh \
-    "Company: $name. Careers page: $url. Use Playwright to visit that URL and look for open roles matching portals.yml's title_filter.positive keywords (Full Stack, Backend, Software Engineer, etc.), excluding title_filter.negative matches, in a location passing portals.yml's location_filter (Israel / Tel Aviv / Ramat Gan / Herzliya / Petah Tikva / remote). Check data/pipeline.md's existing entries for the exact row format scan.mjs uses, then Edit that file to append any matching, currently-live posting you find in that same format -- do not change anything else in the file. If nothing matches, do nothing and just confirm you checked." \
-    2>/dev/null \
-    || echo "$LOG_PREFIX   -> failed/timed out for $name, continuing"
+  # Model's ONLY job is to look and judge match/no-match, as plain JSON --
+  # NOT to figure out pipeline.md's format or safely edit it itself. That
+  # split (perception via the model, deterministic write via a script) is
+  # what made this reliable -- asking the model to also read the file
+  # format and Edit it consistently pushed the task past what it could
+  # finish in any reasonable timeout.
+  result="$(timeout 150 docker compose exec -T "$SERVICE" deploy/claude-headless.sh \
+    "Company: $name. Careers page: $url. Use Playwright to visit that URL. Find open roles matching portals.yml's title_filter.positive keywords (Full Stack, Backend, Software Engineer, etc.), excluding title_filter.negative matches, in a location passing portals.yml's location_filter (Israel / Tel Aviv / Ramat Gan / Herzliya / Petah Tikva / remote). Output ONLY raw JSON, nothing else -- no commentary, no markdown fences: {\"jobs\":[{\"url\":\"...\",\"title\":\"...\",\"location\":\"...\"}]}. If nothing matches, output exactly: {\"jobs\":[]}" \
+    2>/dev/null)" || result=""
   cleanup_browser
+  if [ -z "$result" ]; then
+    echo "$LOG_PREFIX   -> failed/timed out for $name"
+  elif echo "$result" | jq -e '.jobs' >/dev/null 2>&1; then
+    echo "$result" | jq --arg company "$name" '.jobs |= map(. + {company: $company})' \
+      | docker compose exec -T "$SERVICE" node deploy/append-pipeline-entry.mjs
+  else
+    echo "$LOG_PREFIX   -> non-JSON output for $name, skipping"
+  fi
 done
 
 # -- 3. Normal zero-token scan --
