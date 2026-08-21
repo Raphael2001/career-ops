@@ -33,3 +33,9 @@ litellm_settings:
 
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY
+  # Keep request/response details in the LiteLLM UI, then remove them
+  # automatically to limit retention of CV and job-search content.
+  store_model_in_db: true
+  store_prompts_in_spend_logs: true
+  maximum_spend_logs_retention_period: "30d"
+  maximum_spend_logs_retention_interval: "1d"
