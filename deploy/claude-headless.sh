@@ -28,8 +28,11 @@ export ANTHROPIC_MODEL="nemotron-lightning"
 # runs as root by default (see DOCKER.md) -- so no human-approval flag here
 # either way. Scope with --allowedTools instead: no permission prompts to
 # block on, but also nothing outside this explicit list.
-exec claude --print \
+#
+# Prompt goes via stdin, not as a trailing arg: --allowedTools is variadic
+# (space-separated, no fixed arity) and swallows any positional arg placed
+# after it, leaving `claude --print` with no prompt at all.
+printf '%s' "$PROMPT" | exec claude --print \
   --mcp-config deploy/mcp-config.json \
   --allowedTools "Bash Read Write Edit Grep Glob mcp__playwright__*" \
-  "$@" \
-  "$PROMPT"
+  "$@"
