@@ -73,6 +73,15 @@ else
   cleanup_browser
 fi
 
+# -- 1c. Re-probe existing no-ATS companies against slug-guessable vendors --
+#         (Workable/Recruitee/BambooHR/Breezy/Pinpoint/Rippling/Join) --
+#         zero-token, HTTP only, no Playwright/LLM. Runs BEFORE the expensive
+#         Level-1 loop below so anything it upgrades today skips that pass
+#         today too, not just from tomorrow onward.
+echo "$LOG_PREFIX re-probing websearch-tier companies for slug-guessable ATS vendors"
+node deploy/upgrade-websearch-tier.mjs \
+  || echo "$LOG_PREFIX upgrade-websearch-tier failed (non-fatal, continuing)"
+
 # -- 2. Per-company headless Level-1 (Playwright) scan of the no-ATS tier --
 echo "$LOG_PREFIX headless Level-1 (Playwright) scan, one company per call"
 company_count=0
