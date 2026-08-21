@@ -41,7 +41,9 @@ services:
   # deploy/litellm/README.md. Only used when career-ops explicitly points at
   # it (ANTHROPIC_BASE_URL) -- doesn't affect a normal logged-in `claude`.
   litellm:
-    image: ghcr.io/berriai/litellm:main-stable
+    # -database variant runs the Prisma migration on boot and enables the
+    # /ui admin panel (key management, spend tracking) -- needs the DB below.
+    image: ghcr.io/berriai/litellm-database:main-stable
     container_name: career-ops-litellm
     command: ["--config", "/app/config.yaml", "--port", "4000"]
     ports:
@@ -51,8 +53,31 @@ services:
     environment:
       - NVIDIA_API_KEY=${NVIDIA_API_KEY:-}
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-}
+      - DATABASE_URL=postgresql://litellm:${LITELLM_DB_PASSWORD:-litellm}@litellm-db:5432/litellm
+    depends_on:
+      litellm-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Internal-only -- no host port mapping, nothing outside the Docker network
+  # can reach it. Backs the litellm admin UI (/ui) and its key/spend tables.
+  litellm-db:
+    image: postgres:16-alpine
+    container_name: career-ops-litellm-db
+    environment:
+      - POSTGRES_DB=litellm
+      - POSTGRES_USER=litellm
+      - POSTGRES_PASSWORD=${LITELLM_DB_PASSWORD:-litellm}
+    volumes:
+      - career-ops-litellm-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U litellm"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     restart: unless-stopped
 
 volumes:
   career-ops-node-modules:
   career-ops-web-node-modules:
+  career-ops-litellm-db:
