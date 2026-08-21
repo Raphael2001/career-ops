@@ -13,6 +13,17 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       api_base: https://integrate.api.nvidia.com/v1
 
+  # Better fit for genuinely agentic, multi-step tool-use work (e.g. the
+  # Level-1 Playwright job-extraction loop in discover-companies.sh) --
+  # positioned by NVIDIA specifically for "autonomous agent orchestration"
+  # and "long-horizon" multi-step tasks, unlike nemotron-lightning which is
+  # tuned for speed/cost on shorter, narrower calls.
+  - model_name: kimi-agent
+    litellm_params:
+      model: nvidia_nim/moonshotai/kimi-k2.6
+      api_key: os.environ/NVIDIA_API_KEY
+      api_base: https://integrate.api.nvidia.com/v1
+
 litellm_settings:
   drop_params: true
 
