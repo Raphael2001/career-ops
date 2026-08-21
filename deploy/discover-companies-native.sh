@@ -86,9 +86,21 @@ node deploy/upgrade-websearch-tier.mjs \
 echo "$LOG_PREFIX headless Level-1 (Playwright) scan, one company per call"
 company_count=0
 while IFS= read -r line; do
-  name="$(echo "$line" | jq -r '.name')"
-  url="$(echo "$line" | jq -r '.careers_url')"
+  # `|| true` / explicit fallbacks on every step below: this loop has died
+  # silently mid-run more than once in practice (no error text logged, just
+  # stops) -- almost certainly some step in here failing unprotected under
+  # `set -e` + `pipefail` (a jq transform choking on an unexpected shape,
+  # e.g.), which kills the WHOLE script instead of just that one company.
+  # One company's weird output must never be able to take down the other
+  # ~100 companies' worth of progress, so every risky command in this body
+  # now degrades to "skip this company, log it, keep going" instead.
+  name="$(echo "$line" | jq -r '.name' 2>/dev/null)" || name=""
+  url="$(echo "$line" | jq -r '.careers_url' 2>/dev/null)" || url=""
   company_count=$((company_count + 1))
+  if [ -z "$name" ] || [ -z "$url" ]; then
+    echo "$LOG_PREFIX [$company_count] (unparseable line, skipping): $line"
+    continue
+  fi
   echo "$LOG_PREFIX [$company_count] $name"
   result="$(CLAUDE_HEADLESS_MODEL=agent-model timeout 600 deploy/claude-headless.sh \
     "Company: $name. Careers page: $url. Use Playwright to visit that URL. Find open roles matching portals.yml's title_filter.positive keywords (Full Stack, Backend, Software Engineer, etc.), excluding title_filter.negative matches, in a location passing portals.yml's location_filter (Israel / Tel Aviv / Ramat Gan / Herzliya / Petah Tikva / remote). Also check whether the page's job listings are served via Comeet (look for network requests or an iframe/script src pointing at www.comeet.co/careers-api/2.0/company/.../positions -- often visible by viewing the page source or the embedded widget's src attribute). Output ONLY raw JSON, nothing else -- no commentary, no markdown fences: {\"jobs\":[{\"url\":\"...\",\"title\":\"...\",\"location\":\"...\"}],\"comeet_api_url\":\"...\"}. Omit comeet_api_url entirely if you don't find one. If no jobs match, still output the object with an empty jobs array." \
@@ -97,13 +109,15 @@ while IFS= read -r line; do
   if [ -z "$result" ]; then
     echo "$LOG_PREFIX   -> failed/timed out for $name"
   elif echo "$result" | jq -e '.jobs' >/dev/null 2>&1; then
-    echo "$result" | jq --arg company "$name" '.jobs |= map(. + {company: $company})' \
-      | node deploy/append-pipeline-entry.mjs
-    comeet_url="$(echo "$result" | jq -r '.comeet_api_url // empty')"
+    echo "$result" | jq --arg company "$name" '.jobs |= map(. + {company: $company})' 2>/dev/null \
+      | node deploy/append-pipeline-entry.mjs \
+      || echo "$LOG_PREFIX   -> append-pipeline-entry failed for $name, continuing"
+    comeet_url="$(echo "$result" | jq -r '.comeet_api_url // empty' 2>/dev/null)" || comeet_url=""
     if [ -n "$comeet_url" ]; then
       echo "$LOG_PREFIX   -> found Comeet API for $name, upgrading portals.yml"
-      echo "$result" | jq --arg company "$name" '{company: $company, comeet_api_url: .comeet_api_url}' \
-        | node deploy/upgrade-to-comeet.mjs
+      echo "$result" | jq --arg company "$name" '{company: $company, comeet_api_url: .comeet_api_url}' 2>/dev/null \
+        | node deploy/upgrade-to-comeet.mjs \
+        || echo "$LOG_PREFIX   -> upgrade-to-comeet failed for $name, continuing"
     fi
   else
     echo "$LOG_PREFIX   -> non-JSON output for $name, skipping"
