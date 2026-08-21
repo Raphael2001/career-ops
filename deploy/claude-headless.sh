@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
-# Runs `claude` headlessly against the LiteLLM proxy (NVIDIA NIM's free-tier
-# Nemotron) instead of a real Anthropic login -- for automation with no human
-# at the keyboard (cron, discover-companies.sh). Mirrors the LiteLLM toggle
-# pattern from ~/.zshrc, just non-interactive.
-#
-# Does NOT affect a normal interactive `claude` session elsewhere in this
-# container -- these env vars are scoped to this script's subshell only.
+# Runs `claude` headlessly against the LiteLLM proxy for automation with no
+# human at the keyboard (cron, discover-companies.sh). The whole container
+# already defaults every `claude` call to LiteLLM (see docker-compose.yml's
+# career-ops service) -- what this wrapper actually adds is
+# CLAUDE_HEADLESS_MODEL, letting a caller pick a different model per-call
+# (e.g. agent-model for multi-step tool-use vs. nemotron-lightning for a
+# quick single-shot call) without touching the container-wide default.
 #
 # Usage: deploy/claude-headless.sh "<prompt>" [extra claude flags...]
 set -euo pipefail

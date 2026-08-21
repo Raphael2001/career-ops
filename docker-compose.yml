@@ -26,12 +26,18 @@ services:
       - PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
       # Forward common API keys if set on host. Empty values are ignored.
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      # For deploy/claude-headless.sh -- NOT used unless that wrapper is
-      # invoked explicitly. A plain `claude` in this container still uses a
-      # real Anthropic login if one exists.
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-}
+      # Default every `claude` call in this container -- including the web
+      # UI's built-in Ask chat (/api/run, spawns `claude -p` directly) -- to
+      # the LiteLLM/NVIDIA proxy, since there's no browser here for a real
+      # interactive Anthropic login. If you ever DO set a real
+      # ANTHROPIC_API_KEY/BASE_URL/MODEL in .env, those win instead (`:-`
+      # only falls back when the left side is unset), so this doesn't get in
+      # the way of switching to a real subscription later.
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-${LITELLM_MASTER_KEY:-}}
+      - ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL:-http://litellm:4000}
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-agent-model}
     # Chromium needs a larger /dev/shm than the default 64M.
     shm_size: "1gb"
     # Dashboard TUI is interactive; expose nothing by default but allow `-it`.
@@ -39,11 +45,12 @@ services:
     stdin_open: true
     restart: unless-stopped
 
-  # Fronts NVIDIA NIM's free-tier Nemotron model behind an Anthropic-compatible
-  # /v1/messages endpoint so `claude` (Claude Code CLI) can run headless
-  # (cron jobs, discover-companies.sh) without burning Anthropic credits. See
-  # deploy/litellm/README.md. Only used when career-ops explicitly points at
-  # it (ANTHROPIC_BASE_URL) -- doesn't affect a normal logged-in `claude`.
+  # Fronts NVIDIA NIM's free-tier models (Nemotron, nemotron-3-ultra) behind
+  # an Anthropic-compatible /v1/messages endpoint. This is the default
+  # backend for every `claude` call in the career-ops container (see that
+  # service's ANTHROPIC_* env vars above) -- cron jobs, discover-companies.sh,
+  # AND the web UI's own Ask chat, since there's no interactive login
+  # available in this headless container. See deploy/litellm/README.md.
   litellm:
     # -database variant runs the Prisma migration on boot and enables the
     # /ui admin panel (key management, spend tracking) -- needs the DB below.
