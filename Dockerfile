@@ -37,6 +37,12 @@ COPY package.json package-lock.json* ./
 RUN npm install --no-audit --no-fund \
  && npm install --no-audit --no-fund --save-exact playwright@1.62.1
 
+# Claude Code CLI -- lets headless automation (deploy/discover-companies.sh,
+# cron) run `/career-ops scan` itself instead of needing an interactive
+# session. See deploy/litellm/README.md for pointing it at LiteLLM/NVIDIA
+# instead of a real Anthropic key.
+RUN npm install -g --no-audit --no-fund @anthropic-ai/claude-code
+
 # The rest of the project is bind-mounted at runtime via docker compose,
 # so we don't COPY sources here — keeps the image generic and lets local
 # edits show up instantly inside the container.
