@@ -1,0 +1,7 @@
+.git
+node_modules
+.next*
+.yarn/install-state.gz
+.env*.local
+*.log
+.DS_Store

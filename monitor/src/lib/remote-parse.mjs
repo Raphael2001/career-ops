@@ -1,6 +1,7 @@
-// Pure parsing for remote.ts's two SSH-sourced data shapes. Plain JS (not
-// .ts) on purpose, matching web/'s convention for logic that needs to run
-// under `node --test` with zero build step -- see web/src/lib/apply/exit.mjs.
+// Pure parsing for remote.ts's two docker-sourced data shapes. Plain JS
+// (not .ts) on purpose, matching web/'s convention for logic that needs to
+// run under `node --test` with zero build step -- see
+// web/src/lib/apply/exit.mjs.
 
 /**
  * @param {string} raw - combined stdout from the LOCK_EXIT + discover.log
@@ -30,13 +31,33 @@ export function parseScanStatus(raw) {
 }
 
 /**
- * @param {string} raw - stdout from `docker compose ps --format json`,
- *   newline-delimited JSON objects (docker compose's own NDJSON format).
- * @returns {Array<Record<string, unknown>>}
+ * @param {string} raw - stdout from `docker ps --format json` (plain
+ *   docker, not `docker compose ps` -- this container only has a docker
+ *   socket, not the compose project's files, so it can't resolve a
+ *   compose project by directory). Newline-delimited JSON, docker's own
+ *   field names: Names, State, Status, HealthStatus ("none" when the
+ *   service has no healthcheck), Labels (a single comma-joined string
+ *   containing com.docker.compose.service=<name> among others).
+ *
+ *   Verified live against `docker ps --filter
+ *   label=com.docker.compose.project=career-ops --format json` on
+ *   2026-08-22 -- e.g. HealthStatus is "healthy" for litellm-db (it has a
+ *   healthcheck) and "none" for career-ops/litellm (they don't).
+ * @returns {Array<{Name: string, Service: string, State: string, Status: string, Health?: string}>}
  */
 export function parseContainers(raw) {
   return raw
     .split("\n")
     .filter((l) => l.trim().length > 0)
-    .map((l) => JSON.parse(l));
+    .map((l) => JSON.parse(l))
+    .map((d) => {
+      const serviceMatch = (d.Labels ?? "").match(/com\.docker\.compose\.service=([^,]+)/);
+      return {
+        Name: d.Names,
+        Service: serviceMatch?.[1] ?? d.Names,
+        State: d.State,
+        Status: d.Status,
+        Health: d.HealthStatus && d.HealthStatus !== "none" ? d.HealthStatus : undefined,
+      };
+    });
 }

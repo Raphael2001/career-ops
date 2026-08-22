@@ -1,9 +1,14 @@
 # career-ops monitor
 
 Standalone Next.js dashboard for the infra behind career-ops's automation --
-separate from `web/` (the main job-tracking app) and `dashboard/` (a Go TUI).
-Read-only: it doesn't write to anything, doesn't gate any pipeline, and
-running it or not has zero effect on the automation it's watching.
+separate from `web/` (the main job-tracking app) and `dashboard/` (a Go
+TUI). Read-only: it doesn't write to anything, doesn't gate any pipeline,
+and running it or not has zero effect on the automation it's watching.
+
+Runs as its own service in the project's `docker-compose.yml`, on the same
+host as `career-ops`/`litellm`/`litellm-db` -- not something reached over
+SSH from elsewhere (an earlier version worked that way; see "History"
+below for why that changed).
 
 ## Pages
 
@@ -14,10 +19,30 @@ running it or not has zero effect on the automation it's watching.
 - **Scan** (`/scan`) -- whether `discover-companies-native.sh` is currently
   running (via its own lock file), the company it's on, when it last
   started, and the tail of its log.
-- **Containers** (`/containers`) -- `docker compose ps` for `career-ops`,
-  `litellm`, `litellm-db`.
+- **Containers** (`/containers`) -- status of `career-ops`, `litellm`,
+  `litellm-db`.
 
-## Setup
+## Running it
+
+```bash
+docker compose up -d monitor
+```
+
+Open `http://<host>:4002`. That's it -- `LITELLM_BASE_URL` and
+`LITELLM_MASTER_KEY` are supplied automatically by `docker-compose.yml`
+(see the `monitor` service there), and container/scan status come from the
+docker socket mounted into the container (`/var/run/docker.sock:ro`), not
+SSH.
+
+`docker-compose.yml` changing (which this service addition does) is in the
+deploy script's rebuild-trigger list -- next push runs `./cops rebuild`,
+which is safe but does briefly recreate `career-ops` too (kills a
+discovery scan if one's mid-run; it just needs re-running, same as any
+other rebuild).
+
+### Local dev (optional)
+
+Iterating on the UI without a full image rebuild each time:
 
 ```bash
 cd monitor
@@ -25,35 +50,23 @@ yarn install
 yarn dev
 ```
 
-That's it -- no `.env.local` needed by default. Every page reads its data by
-SSHing to `linux-claw` (override with `MONITOR_SSH_HOST` if your host is
-named differently) and running the same commands you'd type by hand:
-`curl localhost:4001/...` for litellm, `docker compose exec ... flock` for
-scan status, `docker compose ps` for containers. litellm's own `.env` on
-that host already has `LITELLM_MASTER_KEY` -- this app never needs its own
-copy of it.
+Only works run directly on the docker host itself (not from elsewhere) --
+`getScanStatus`/`getContainers` shell out to the local `docker` binary,
+which needs a real socket at the default location, not a remote one. See
+`.env.example` for the two vars this mode needs that docker-compose
+otherwise supplies.
 
-Requires a working `~/.ssh/config` entry for the host with no password
-prompt (BatchMode) -- the same one you'd use for `ssh linux-claw`.
+## Docker socket access -- know what you're mounting
 
-## Why everything goes through SSH, not a direct API call
-
-The first version of the Models page called litellm's HTTP API directly
-(`LITELLM_BASE_URL` pointed at the LAN IP). That broke the moment this
-dashboard ran somewhere without a route to that specific LAN -- a sandboxed
-dev environment, a laptop on a different network, anywhere that isn't
-physically on the same subnet as the docker host. SSH already had to work
-for the Scan and Containers pages (`docker compose exec`/`ps` have no HTTP
-equivalent), so routing litellm calls through the same SSH session too
-removes the LAN assumption entirely and means one thing to configure
-(`MONITOR_SSH_HOST`) instead of two.
-
-The tradeoff: this only runs from a machine with SSH access to that host --
-a personal dev tool, not something meant to be publicly deployed. If it
-ever needs to run from somewhere without SSH access, the alternative is
-mounting the docker socket and bind-mounting `deploy/discover.log` into
-this app's own container instead -- not done here to keep it a plain
-`yarn dev`, no docker-compose service of its own.
+The `monitor` service in `docker-compose.yml` mounts
+`/var/run/docker.sock` read-only. That's still root-equivalent access to
+every container on the host, not just career-ops's own three -- the
+read-only mount flag only stops the *file* from being written to, not what
+you can do by talking to the Docker Engine API through it (start/stop/exec
+into anything). Accepted here because this is a personal single-user host
+and the alternative (a scoped API proxy in front of the socket) is real
+infra for a read-only dev tool. Don't copy this mount into anything
+multi-tenant or internet-facing.
 
 ## Testing
 
@@ -62,15 +75,16 @@ yarn test
 ```
 
 Covers `src/lib/remote-parse.mjs` -- the pure parsing that turns
-`docker compose ps --format json` and the scan's lock+log SSH output into
+`docker ps --format json` and the scan's lock+log output into
 `ScanStatus`/`ContainerStatus`, the actual logic that can silently break
 when either output format changes. Kept in a plain `.mjs` file (not `.ts`)
-so `node --test` runs it with zero build step, matching `web/`'s convention
-for the same kind of pure logic (see `web/src/lib/apply/exit.mjs`).
+so `node --test` runs it with zero build step, matching `web/`'s
+convention for the same kind of pure logic (see
+`web/src/lib/apply/exit.mjs`).
 
-The SSH plumbing itself (`runRemote`, `curlLiteLLM`, and the litellm
-`/health`/`/spend` calls) isn't covered here -- it needs a live host, and is
-exercised by hand against the real one instead.
+The docker exec/ps plumbing itself (`remote.ts`) isn't covered here -- it
+needs a real docker socket, and is exercised by hand against the real one
+instead.
 
 ## Refresh behavior
 
@@ -80,3 +94,17 @@ is slower deliberately: `/health` dispatches a real test call to every
 configured model, and the full sweep has been observed to take close to
 100s wall-clock (the biggest model alone can take 20-30s, and NVIDIA NIM's
 free tier occasionally needs a retry mid-stream).
+
+## History
+
+The first version called litellm's HTTP API directly at its LAN IP
+(`LITELLM_BASE_URL` pointed outward) and reached scan/container status
+over SSH (`docker exec`/`docker compose ps` run remotely). That broke the
+moment it ran somewhere without a route to that specific LAN, and depended
+on an SSH key + `~/.ssh/config` entry existing wherever it ran. Moving it
+into `docker-compose.yml` on the same host as everything it watches
+removed both problems at once: litellm is reached by its compose-network
+service name (`http://litellm:4000`, no LAN IP, no key needed for that
+part), and scan/container status come from a mounted docker socket instead
+of SSH -- one dependency (a socket mount) instead of two (a working SSH
+config, plus whatever network path SSH needed).

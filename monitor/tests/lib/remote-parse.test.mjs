@@ -1,8 +1,8 @@
 // Tests for the pure parsing in src/lib/remote-parse.mjs -- the actual logic
 // that can silently break when discover-companies-native.sh's log format or
-// `docker compose ps --format json`'s output shape changes. remote.ts's own
-// SSH plumbing around these functions isn't covered here (needs a live host,
-// exercised by hand instead -- see the session notes in AGENTS.md/README).
+// `docker ps --format json`'s output shape changes. remote.ts's own docker
+// exec/ps plumbing around these functions isn't covered here (needs a real
+// docker socket, exercised by hand instead).
 //
 // Run:  node --test tests/lib/remote-parse.test.mjs
 
@@ -101,18 +101,52 @@ test("parseScanStatus: recentLines caps at 15 and drops blank lines", () => {
   assert.equal(status.recentLines[14], "line 19");
 });
 
-test("parseContainers: parses docker compose ps's newline-delimited JSON", () => {
-  const raw = [
-    '{"Name":"career-ops-litellm","Service":"litellm","State":"running","Status":"Up 2 hours","Health":"healthy"}',
-    '{"Name":"career-ops","Service":"career-ops","State":"running","Status":"Up 2 hours"}',
-  ].join("\n");
+// Real captured `docker ps --filter label=com.docker.compose.project=career-ops
+// --format json` output (2026-08-22, field order/content trimmed to what
+// parseContainers actually reads) -- litellm-db has a healthcheck,
+// career-ops/litellm don't.
+const CAREER_OPS_LINE =
+  '{"Names":"career-ops","State":"running","Status":"Up 2 hours","HealthStatus":"none","Labels":"com.docker.compose.project=career-ops,com.docker.compose.service=career-ops,com.docker.compose.container-number=1"}';
+const LITELLM_LINE =
+  '{"Names":"career-ops-litellm","State":"running","Status":"Up 2 hours","HealthStatus":"none","Labels":"com.docker.compose.project=career-ops,com.docker.compose.service=litellm,com.docker.compose.container-number=1"}';
+const LITELLM_DB_LINE =
+  '{"Names":"career-ops-litellm-db","State":"running","Status":"Up 30 hours (healthy)","HealthStatus":"healthy","Labels":"com.docker.compose.project=career-ops,com.docker.compose.service=litellm-db,com.docker.compose.container-number=1"}';
+
+test("parseContainers: parses docker ps's newline-delimited JSON, extracting Service from Labels", () => {
+  const raw = [CAREER_OPS_LINE, LITELLM_LINE, LITELLM_DB_LINE].join("\n");
 
   const containers = parseContainers(raw);
 
-  assert.equal(containers.length, 2);
-  assert.equal(containers[0].Service, "litellm");
-  assert.equal(containers[0].Health, "healthy");
+  assert.equal(containers.length, 3);
+  assert.deepEqual(
+    containers.map((c) => c.Service),
+    ["career-ops", "litellm", "litellm-db"],
+  );
+});
+
+test("parseContainers: HealthStatus \"none\" (no healthcheck configured) becomes undefined, not the literal string", () => {
+  // Given career-ops and litellm, neither of which has a docker healthcheck
+  const raw = [CAREER_OPS_LINE, LITELLM_LINE].join("\n");
+
+  const containers = parseContainers(raw);
+
+  // Then Health is undefined for both -- the UI's fallback (State ===
+  // "running" -> "running" badge) is what should decide their display,
+  // not a false "none" health reading
+  assert.equal(containers[0].Health, undefined);
   assert.equal(containers[1].Health, undefined);
+});
+
+test("parseContainers: a real HealthStatus passes through as-is", () => {
+  const containers = parseContainers(LITELLM_DB_LINE);
+
+  assert.equal(containers[0].Health, "healthy");
+});
+
+test("parseContainers: Name is the container's Names field verbatim", () => {
+  const containers = parseContainers(LITELLM_LINE);
+
+  assert.equal(containers[0].Name, "career-ops-litellm");
 });
 
 test("parseContainers: blank output means no containers, not a crash", () => {
@@ -121,8 +155,7 @@ test("parseContainers: blank output means no containers, not a crash", () => {
 });
 
 test("parseContainers: a malformed line throws -- caller decides how to surface it", () => {
-  // Given output that isn't valid JSON (e.g. a truncated SSH response, or
-  // docker printing a warning line ahead of the JSON)
+  // Given output that isn't valid JSON (e.g. a truncated docker response)
   const raw = "not json at all";
 
   // Then parsing throws rather than silently returning an empty/wrong

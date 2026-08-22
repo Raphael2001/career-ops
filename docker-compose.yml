@@ -96,6 +96,37 @@ services:
       retries: 10
     restart: unless-stopped
 
+  # Read-only infra dashboard -- LiteLLM model health/usage, discovery-scan
+  # status, container status. See monitor/README.md. Reaches litellm over
+  # this compose network directly (LITELLM_BASE_URL below); scan/container
+  # status come from the mounted docker socket instead of SSH, since this
+  # container now runs on the same host as everything it's watching.
+  #
+  # SECURITY NOTE: the docker socket mount gives this container control
+  # over every container on the host, not just career-ops's own three --
+  # docker socket access is root-equivalent host access. Accepted here
+  # because this is a personal single-user host and the alternative (a
+  # scoped docker API proxy) is real infra for a read-only dev tool. Don't
+  # copy this mount into anything multi-tenant or internet-facing.
+  monitor:
+    build:
+      context: ./monitor
+      dockerfile: Dockerfile
+    image: career-ops-monitor:local
+    container_name: career-ops-monitor
+    # Host 4002 -> container 3000 (4000 is career-ops's web UI, 4001 is
+    # litellm's host-mapped port).
+    ports:
+      - "4002:3000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - LITELLM_BASE_URL=http://litellm:4000
+      - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-}
+    depends_on:
+      - litellm
+    restart: unless-stopped
+
 volumes:
   career-ops-node-modules:
   career-ops-web-node-modules:
