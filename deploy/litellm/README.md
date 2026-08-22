@@ -54,8 +54,8 @@ export ANTHROPIC_BASE_URL=http://localhost:4001
 The two NVIDIA models above share one `NVIDIA_API_KEY`, so an NVIDIA-side
 rate limit hits both at once. `config.yaml` adds four more models
 (`gpt-4o`, `openai/gpt-oss-120b`, `nvidia/nemotron-3-ultra-550b-a55b:free`,
-`z-ai/glm-5.2:free`) and a `fallbacks` chain in `litellm_settings` -- a 429
-on any model retries the others in priority order (NVIDIA pair first, then
+`glm-4.7-flash`) and a `fallbacks` chain in `litellm_settings` -- a 429 on
+any model retries the others in priority order (NVIDIA pair first, then
 each other provider) until one succeeds. Every `model_name` in
 `config.yaml` is the provider's own real model id, not an invented alias --
 what you pass as `ANTHROPIC_MODEL`/`CLAUDE_HEADLESS_MODEL` is exactly what
@@ -73,36 +73,37 @@ that provider calls the model.
    `GROQ_API_KEY=gsk_...` to `.env`.
 3. **OpenRouter:** free key at <https://openrouter.ai> -> Sign Up -> Keys.
    Add `OPENROUTER_API_KEY=sk-or-v1-...` to `.env` (shared with
-   `openrouter-runner.mjs`, and also backs `z-ai/glm-5.2:free` below -- one
-   key covers all three).
-4. For the deploy workflow (`.github/workflows/deploy.yml`), add repo
-   secrets named **`GH_MODELS_API_KEY`**, **`GROQ_MODELS_API_KEY`**, and
-   **`OPENROUTER_API_KEY`** (GitHub Actions rejects repo secrets with a
-   `GITHUB_` prefix, reserved for its own token -- that's why the first is
-   renamed; the others aren't affected). The workflow maps them onto the
-   matching `.env` var names on the host for you.
-5. `docker compose up -d litellm` to pick it all up (needs a container
+   `openrouter-runner.mjs`).
+4. **Z.ai:** free key at <https://z.ai> -> API keys. Add
+   `ZAI_API_KEY=...` to `.env`. **Use `glm-4.7-flash`, not the paid
+   glm-4.x/glm-5.x line** -- every model listed by `GET
+   https://api.z.ai/api/paas/v4/models` is pay-as-you-go and 429s
+   "Insufficient balance" on a $0 account; `glm-4.7-flash` is a genuinely
+   free model that isn't even listed by that endpoint (confirmed against
+   Z.ai's own docs and a live test call on 2026-08-22).
+5. For the deploy workflow (`.github/workflows/deploy.yml`), add repo
+   secrets named **`GH_MODELS_API_KEY`**, **`GROQ_MODELS_API_KEY`**,
+   **`OPENROUTER_API_KEY`**, and **`ZAI_API_KEY`** (GitHub Actions rejects
+   repo secrets with a `GITHUB_` prefix, reserved for its own token --
+   that's why the first is renamed; the others aren't affected). The
+   workflow maps them onto the matching `.env` var names on the host for
+   you.
+6. `docker compose up -d litellm` to pick it all up (needs a container
    recreate for new env vars, not just a restart -- `restart` reuses the
    env the container already has).
 
-`z-ai/glm-5.2:free` (Z.ai's GLM) needs no separate key or setup step --
-it's routed through OpenRouter's free tier (`litellm_params.model:
-openrouter/z-ai/glm-5.2:free`), not Z.ai's own direct API, which has no
-free tier for a standalone account (every model there 429s "Insufficient
-balance" without a paid top-up). This does mean it shares
-`OPENROUTER_API_KEY`/quota with `nvidia/nemotron-3-ultra-550b-a55b:free`
-above -- not an independent fallback from that one specifically, just from
-the NVIDIA/GitHub/Groq models.
-
-Any of the three keys can be left unset -- `os.environ/VAR` just resolves
+Any of the four keys can be left unset -- `os.environ/VAR` just resolves
 empty and that model 401s if actually dispatched, which only happens if
 every model ahead of it in the fallback chain is also failing.
 
-**Provider catalogs drift.** Two of these model ids (Groq's and
-OpenRouter's) were wrong on first pass -- the models existed when this file
-was originally written but had since been deprecated/repriced. Before
-trusting a fallback model id, check it against that provider's live
-`/models` endpoint rather than copying from docs or memory.
+**Provider catalogs drift, and a provider's own `/models` endpoint isn't
+always complete.** Three of these model ids were wrong on first pass:
+Groq's and OpenRouter's picks had been deprecated/repriced since this file
+was written, and the first `glm-4.5-flash` guess for Z.ai looked wrong
+(429, and absent from `/models`) but was actually right -- Z.ai's free
+models just don't appear in that listing at all. Verify a fallback model
+id two ways before trusting it: the provider's live `/models` endpoint,
+*and* an actual test call, since the two don't always agree.
 
 ## Notes
 

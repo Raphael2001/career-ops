@@ -74,23 +74,18 @@ model_list:
       model: openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
       api_key: os.environ/OPENROUTER_API_KEY
 
-  # Z.ai (GLM) -- routed through OpenRouter's free tier, not Z.ai's own
-  # api.z.ai directly. Every model on the direct API 429s with "Insufficient
-  # balance or no resource package" for a fresh account regardless of model
-  # id -- there's no free tier there, only pay-as-you-go. OpenRouter's
-  # z-ai/glm-5.2:free is an actual $0 route to the same model family.
-  # Verified live against GET https://openrouter.ai/api/v1/models
-  # (prompt/completion pricing == "0") on 2026-08-22.
-  #
-  # NOTE: this shares OPENROUTER_API_KEY/quota with the OpenRouter entry
-  # above, so it is not an independent fallback from that one -- an
-  # OpenRouter-side rate limit takes both down together. It's still a
-  # useful distinct fallback from the NVIDIA/GitHub/Groq models, just not
-  # from the other OpenRouter-routed one.
-  - model_name: z-ai/glm-5.2:free
+  # Z.ai (GLM) -- direct api.z.ai, not OpenRouter. glm-5.x/glm-4.5/glm-4.6/
+  # glm-4.7 (the models listed by GET https://api.z.ai/api/paas/v4/models)
+  # are pay-as-you-go and 429 "Insufficient balance or no resource package"
+  # on a $0 account. glm-4.7-flash is a genuinely free model that ISN'T
+  # listed by that endpoint at all -- confirmed via Z.ai's own docs
+  # (docs.z.ai) and a live test call, both on 2026-08-22. Independent
+  # key/quota from every other model above.
+  - model_name: glm-4.7-flash
     litellm_params:
-      model: openrouter/z-ai/glm-5.2:free
-      api_key: os.environ/OPENROUTER_API_KEY
+      model: openai/glm-4.7-flash
+      api_key: os.environ/ZAI_API_KEY
+      api_base: https://api.z.ai/api/paas/v4/
 
 litellm_settings:
   drop_params: true
@@ -100,14 +95,14 @@ litellm_settings:
   # rate limit on one provider doesn't take down every model at once):
   # nvidia/nemotron-3-ultra-550b-a55b -> nvidia/nemotron-3.5-lightning-30b-a3b
   #   -> gpt-4o -> openai/gpt-oss-120b -> nvidia/nemotron-3-ultra-550b-a55b:free
-  #   -> z-ai/glm-5.2:free
+  #   -> glm-4.7-flash
   fallbacks:
-    - nvidia/nemotron-3-ultra-550b-a55b: ["nvidia/nemotron-3.5-lightning-30b-a3b", "gpt-4o", "openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "z-ai/glm-5.2:free"]
-    - nvidia/nemotron-3.5-lightning-30b-a3b: ["nvidia/nemotron-3-ultra-550b-a55b", "gpt-4o", "openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "z-ai/glm-5.2:free"]
-    - gpt-4o: ["openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "z-ai/glm-5.2:free", "nvidia/nemotron-3-ultra-550b-a55b"]
-    - openai/gpt-oss-120b: ["gpt-4o", "nvidia/nemotron-3-ultra-550b-a55b:free", "z-ai/glm-5.2:free", "nvidia/nemotron-3-ultra-550b-a55b"]
-    - nvidia/nemotron-3-ultra-550b-a55b:free: ["gpt-4o", "openai/gpt-oss-120b", "z-ai/glm-5.2:free", "nvidia/nemotron-3-ultra-550b-a55b"]
-    - z-ai/glm-5.2:free: ["gpt-4o", "openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "nvidia/nemotron-3-ultra-550b-a55b"]
+    - nvidia/nemotron-3-ultra-550b-a55b: ["nvidia/nemotron-3.5-lightning-30b-a3b", "gpt-4o", "openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash"]
+    - nvidia/nemotron-3.5-lightning-30b-a3b: ["nvidia/nemotron-3-ultra-550b-a55b", "gpt-4o", "openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash"]
+    - gpt-4o: ["openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash", "nvidia/nemotron-3-ultra-550b-a55b"]
+    - openai/gpt-oss-120b: ["gpt-4o", "nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash", "nvidia/nemotron-3-ultra-550b-a55b"]
+    - nvidia/nemotron-3-ultra-550b-a55b:free: ["gpt-4o", "openai/gpt-oss-120b", "glm-4.7-flash", "nvidia/nemotron-3-ultra-550b-a55b"]
+    - glm-4.7-flash: ["gpt-4o", "openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "nvidia/nemotron-3-ultra-550b-a55b"]
   num_retries: 2
 
 general_settings:

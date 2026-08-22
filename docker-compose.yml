@@ -69,6 +69,7 @@ services:
       - GITHUB_API_KEY=${GITHUB_API_KEY:-}
       - GROQ_API_KEY=${GROQ_API_KEY:-}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - ZAI_API_KEY=${ZAI_API_KEY:-}
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-}
       - DATABASE_URL=postgresql://litellm:${LITELLM_DB_PASSWORD:-litellm}@litellm-db:5432/litellm
     depends_on:
