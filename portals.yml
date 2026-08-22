@@ -690,8 +690,7 @@ tracked_companies:
     enabled: true
   - name: Papaya Global
     careers_url: https://www.papayaglobal.com/careers/
-    scan_method: websearch
-    scan_query: site:www.papayaglobal.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/papayaglobal/positions
     enabled: true
   - name: Payem
     careers_url: https://payem.com/careers/
