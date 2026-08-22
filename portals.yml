@@ -718,8 +718,7 @@ tracked_companies:
     enabled: true
   - name: FundGuard
     careers_url: https://fundguard.com/
-    scan_method: websearch
-    scan_query: site:fundguard.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/37.002/positions?token=7322B2C1596159623FA40C21CC8159615961CC8
     notes: Tel Aviv/Boston. Asset management SaaS platform.
     enabled: true
   - name: Aidoc
