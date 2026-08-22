@@ -15,6 +15,7 @@ jobs:
           LITELLM_MASTER_KEY: ${{ secrets.LITELLM_MASTER_KEY }}
         run: |
           cd ~/career-ops
+          OLD_SHA="$(git rev-parse HEAD)"
           git fetch origin main
 
           # portals.yml (tracked in git) gets written to live by the
@@ -27,6 +28,7 @@ jobs:
           git stash push -u -m "pre-deploy $(date -u +%Y-%m-%dT%H:%M:%SZ)"
           git reset --hard origin/main
           git stash pop || echo "::warning::stash pop failed or had nothing to pop -- check 'git stash list' on the server"
+          NEW_SHA="$(git rev-parse HEAD)"
 
           # Sync secrets into .env (repo secrets -> host .env), leaving any
           # other lines untouched. No-op for a key that isn't set as a
@@ -40,21 +42,30 @@ jobs:
             mv .env.tmp .env
           done
 
-          # `./cops rebuild` always recreates the career-ops container,
-          # regardless of what changed -- which kills any discovery scan
-          # that happens to be running at that exact moment, with zero error
-          # output (the process just vanishes; this cost real hours to
-          # diagnose the first time, tracing it back to "which deploy landed
-          # right as it died"). Not blocking the deploy for it -- the scan is
-          # resumable (portals.yml/pipeline.md progress already persisted)
-          # and code fixes shouldn't wait on a job that can run for most of a
-          # day -- just making the interruption visible in THIS run's own
-          # log instead of a silent mystery days later.
-          if docker compose exec -T career-ops sh -c 'flock -n /tmp/discover-companies-native.lock -c true' 2>/dev/null; then
-            echo "No discovery scan running -- safe rebuild."
+          # `./cops rebuild` always recreates the career-ops container --
+          # which kills any discovery scan running at that moment (this
+          # happened repeatedly). Most deploys don't actually need it: `.` is
+          # bind-mounted into the container, so a plain script/route/provider
+          # change is ALREADY live the instant `git reset --hard` above
+          # touches the file on disk -- no restart required -- and the web
+          # UI's Next dev server hot-reloads its own source on file change by
+          # itself. A rebuild is only genuinely needed when something that
+          # affects the IMAGE or the container's fixed config changed:
+          # Dockerfile (system packages), docker-compose.yml (env vars/ports/
+          # volumes are set at container-creation time, not bind-mount-live),
+          # or a package.json/package-lock.json (new dependencies node_modules
+          # doesn't have yet).
+          REBUILD_TRIGGERS='^(Dockerfile|docker-compose\.yml|package(-lock)?\.json|web/package(-lock)?\.json)$'
+          if [ "$OLD_SHA" != "$NEW_SHA" ] && git diff --name-only "$OLD_SHA" "$NEW_SHA" | grep -qE "$REBUILD_TRIGGERS"; then
+            echo "Image-affecting file changed -- rebuild needed."
+            if docker compose exec -T career-ops sh -c 'flock -n /tmp/discover-companies-native.lock -c true' 2>/dev/null; then
+              echo "No discovery scan running -- safe rebuild."
+            else
+              echo "::warning::A discovery scan is running right now -- this rebuild will kill it mid-run (progress already made is safe on disk; it'll just need re-running, either manually or at tonight's cron)."
+            fi
+            ./cops rebuild
           else
-            echo "::warning::A discovery scan is running right now -- this rebuild will kill it mid-run (progress already made is safe on disk; it'll just need re-running, either manually or at tonight's cron)."
+            echo "No image-affecting files changed -- skipping rebuild, code is already live via the bind mount (any running discovery scan is untouched)."
           fi
 
-          ./cops rebuild
           ./cops doctor
