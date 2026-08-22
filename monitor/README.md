@@ -21,8 +21,8 @@ running it or not has zero effect on the automation it's watching.
 
 ```bash
 cd monitor
-npm install
-npm run dev
+yarn install
+yarn dev
 ```
 
 That's it -- no `.env.local` needed by default. Every page reads its data by
@@ -53,7 +53,7 @@ a personal dev tool, not something meant to be publicly deployed. If it
 ever needs to run from somewhere without SSH access, the alternative is
 mounting the docker socket and bind-mounting `deploy/discover.log` into
 this app's own container instead -- not done here to keep it a plain
-`npm run dev`, no docker-compose service of its own.
+`yarn dev`, no docker-compose service of its own.
 
 ## Refresh behavior
 

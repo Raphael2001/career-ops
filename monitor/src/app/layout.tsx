@@ -20,9 +20,19 @@ export const metadata: Metadata = {
   description: "LiteLLM model health, discovery-scan status, container status.",
 };
 
+// Runs before paint so the theme is right on first frame -- a client
+// component that toggled the class after mount would flash the wrong
+// theme for one frame on every load. Priority: stored choice, then system
+// preference, defaulting dark (this app's original design) only when the
+// system reports no preference either way.
+const NO_FLASH_THEME_SCRIPT = `(function(){try{var s=localStorage.getItem('monitor-theme');var dark=s==='light'?false:(s==='dark'?true:!window.matchMedia('(prefers-color-scheme: light)').matches);if(dark)document.documentElement.classList.add('dark');}catch(e){document.documentElement.classList.add('dark');}})();`;
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${firaSans.variable} ${firaCode.variable}`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: NO_FLASH_THEME_SCRIPT }} />
+      </head>
       <body className="flex h-dvh font-sans antialiased">
         <Sidebar />
         <main className="flex-1 overflow-y-auto">

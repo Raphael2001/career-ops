@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LayoutDashboard, BrainCircuit, Search, Box } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const NAV_ITEMS = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
@@ -20,7 +21,7 @@ export function Sidebar() {
         <span className="font-mono text-sm font-semibold tracking-tight text-fg">career-ops</span>
         <span className="ml-1.5 font-mono text-sm text-faint">/monitor</span>
       </div>
-      <ul className="flex flex-col gap-0.5 p-2">
+      <ul className="flex flex-1 flex-col gap-0.5 p-2">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const active = pathname === href;
           return (
@@ -40,6 +41,9 @@ export function Sidebar() {
           );
         })}
       </ul>
+      <div className="border-t border-border p-2">
+        <ThemeToggle />
+      </div>
     </nav>
   );
 }
