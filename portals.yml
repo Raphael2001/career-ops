@@ -771,8 +771,7 @@ tracked_companies:
     enabled: true
   - name: Innoviz
     careers_url: https://www.innoviz.tech/careers
-    scan_method: websearch
-    scan_query: site:www.innoviz.tech "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/52.004/positions?token=25495012A0104C012A0104C6FCBA40
     enabled: true
   - name: Optibus
     careers_url: https://optibus.pinpointhq.com
