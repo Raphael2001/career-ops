@@ -162,6 +162,16 @@ test("allows a LAN host that is explicitly opted in", () => {
   assert.equal(d.ok, true);
 });
 
+test("allows any host with an explicit wildcard opt-in", () => {
+  const d = checkRequest({
+    secFetchSite: "same-origin",
+    origin: "http://example.internal:3000",
+    host: "example.internal:3000",
+    allowedHosts: parseAllowedHosts("*"),
+  });
+  assert.equal(d.ok, true);
+});
+
 test("blocks a request with no Host header", () => {
   const d = checkRequest({
     secFetchSite: "same-origin",

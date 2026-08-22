@@ -16,7 +16,8 @@
 //   Origin layer (F1): trust Sec-Fetch-Site when the browser sends it, fall
 //     back to comparing Origin against Host for older/non-browser clients.
 //   Host layer (F2): only answer on a loopback Host by default; extra hosts
-//     require an explicit opt-in (CAREER_OPS_WEB_ALLOWED_HOSTS).
+//     require an explicit opt-in (CAREER_OPS_WEB_ALLOWED_HOSTS). A value of
+//     "*" explicitly permits every reachable Host.
 
 /** Lowercase a Host/authority, drop the port, unwrap a bracketed IPv6 literal. */
 export function normalizeHost(hostHeader) {
@@ -39,7 +40,7 @@ export function isLoopbackHost(host) {
   return /^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h);
 }
 
-/** Parse the opt-in env value ("host1, host2:port host3") into a Set of hosts. */
+/** Parse the opt-in env value ("host1, host2:port host3" or "*") into a Set of hosts. */
 export function parseAllowedHosts(envValue) {
   const out = new Set();
   if (!envValue) return out;
@@ -64,10 +65,13 @@ function block(reason) {
  * @returns {{ok: true} | {ok: false, status: number, reason: string}}
  */
 export function checkRequest({ secFetchSite, origin, host, allowedHosts }) {
-  // Host layer (F2): must be loopback, or an explicitly opted-in host.
+  // Host layer (F2): must be loopback, or an explicitly opted-in host. "*" is
+  // a deliberate broad opt-in for deployments on trusted networks.
   const normalizedHost = normalizeHost(host);
   if (!normalizedHost) return block("missing Host header");
-  const hostAllowed = isLoopbackHost(normalizedHost) || (allowedHosts && allowedHosts.has(normalizedHost));
+  const hostAllowed =
+    isLoopbackHost(normalizedHost) ||
+    (allowedHosts && (allowedHosts.has("*") || allowedHosts.has(normalizedHost)));
   if (!hostAllowed) {
     return block(
       "this host is not allowed; the dashboard serves loopback only unless CAREER_OPS_WEB_ALLOWED_HOSTS opts it in",
