@@ -33,23 +33,56 @@ model_list:
   # share one NVIDIA_API_KEY, so an NVIDIA-side limit hits both at once.
   # GITHUB_API_KEY is a GitHub PAT with "models: read" permission:
   # https://github.com/settings/personal-access-tokens
+  #
+  # As of 2026-08-22, GitHub Models itself is returning
+  # github_models_retirement_brownout on every request ("scheduled
+  # retirement", GitHub's wording -- not a transient outage). Left wired
+  # since a dead model just fails fast and falls through the chain below,
+  # but don't expect it to actually serve traffic; check
+  # https://github.com/github/roadmap for its status before relying on it.
   - model_name: gh-gpt4o
     litellm_params:
       model: github/gpt-4o
       api_key: os.environ/GITHUB_API_KEY
 
-  # Groq -- fast free-tier inference, independent key/quota.
+  # Groq -- fast free-tier inference, independent key/quota. Verified live
+  # against GET https://api.groq.com/openai/v1/models on 2026-08-22 --
+  # llama-3.3-70b-versatile (the previous pick) has since been removed from
+  # Groq's catalog; gpt-oss-120b is Groq's current largest general/
+  # tool-calling model.
   - model_name: groq-model
     litellm_params:
-      model: groq/llama-3.3-70b-versatile
+      model: groq/openai/gpt-oss-120b
       api_key: os.environ/GROQ_API_KEY
 
-  # OpenRouter -- broad free-tier catalog, independent key/quota.
+  # OpenRouter -- broad free-tier catalog, independent key/quota. Verified
+  # live against GET https://openrouter.ai/api/v1/models (prompt/completion
+  # pricing == "0") on 2026-08-22 -- the previous pick
+  # (meta-llama/llama-3.3-70b-instruct:free) has since gone paid-only.
+  # Picked the OpenRouter-hosted twin of this file's own agent-model
+  # (same weights, NVIDIA's Nemotron-3-Ultra) so quality doesn't regress
+  # on fallback, just the provider/key.
   # OPENROUTER_API_KEY is shared with openrouter-runner.mjs (see .env.example).
   - model_name: openrouter-model
     litellm_params:
-      model: openrouter/meta-llama/llama-3.3-70b-instruct:free
+      model: openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
       api_key: os.environ/OPENROUTER_API_KEY
+
+  # Z.ai (GLM) -- OpenAI-compatible endpoint, same pattern openai-eval.mjs
+  # already uses for Zhipu GLM. No native litellm provider prefix for it,
+  # so route through the generic openai/ provider with an explicit api_base.
+  #
+  # UNVERIFIED as of 2026-08-22 -- no ZAI_API_KEY was available to check
+  # Z.ai's live model list, and this file's two other from-memory model-name
+  # guesses (Groq, OpenRouter, above) both turned out stale. Once
+  # ZAI_API_KEY is set, confirm this id against `GET
+  # https://api.z.ai/api/paas/v4/models` (needs the key -- it 401s without
+  # one) before trusting this fallback.
+  - model_name: zai-model
+    litellm_params:
+      model: openai/glm-4.5-flash
+      api_key: os.environ/ZAI_API_KEY
+      api_base: https://api.z.ai/api/paas/v4/
 
 litellm_settings:
   drop_params: true
@@ -57,13 +90,14 @@ litellm_settings:
   # scored on this priority order (NVIDIA models first -- cheapest/fastest
   # for this repo's workloads -- then each other provider/key, so a
   # rate limit on one provider doesn't take down every model at once):
-  # agent-model -> nemotron-lightning -> gh-gpt4o -> groq-model -> openrouter-model
+  # agent-model -> nemotron-lightning -> gh-gpt4o -> groq-model -> openrouter-model -> zai-model
   fallbacks:
-    - agent-model: ["nemotron-lightning", "gh-gpt4o", "groq-model", "openrouter-model"]
-    - nemotron-lightning: ["agent-model", "gh-gpt4o", "groq-model", "openrouter-model"]
-    - gh-gpt4o: ["groq-model", "openrouter-model", "agent-model"]
-    - groq-model: ["gh-gpt4o", "openrouter-model", "agent-model"]
-    - openrouter-model: ["gh-gpt4o", "groq-model", "agent-model"]
+    - agent-model: ["nemotron-lightning", "gh-gpt4o", "groq-model", "openrouter-model", "zai-model"]
+    - nemotron-lightning: ["agent-model", "gh-gpt4o", "groq-model", "openrouter-model", "zai-model"]
+    - gh-gpt4o: ["groq-model", "openrouter-model", "zai-model", "agent-model"]
+    - groq-model: ["gh-gpt4o", "openrouter-model", "zai-model", "agent-model"]
+    - openrouter-model: ["gh-gpt4o", "groq-model", "zai-model", "agent-model"]
+    - zai-model: ["gh-gpt4o", "groq-model", "openrouter-model", "agent-model"]
   num_retries: 2
 
 general_settings:

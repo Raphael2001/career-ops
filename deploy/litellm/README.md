@@ -49,35 +49,54 @@ From the host (outside Docker), swap the base URL for the mapped port:
 export ANTHROPIC_BASE_URL=http://localhost:4001
 ```
 
-## Rate-limit fallback (GitHub Models, Groq, OpenRouter)
+## Rate-limit fallback (GitHub Models, Groq, OpenRouter, Z.ai)
 
 `agent-model` and `nemotron-lightning` share one `NVIDIA_API_KEY`, so an
-NVIDIA-side rate limit hits both at once. `config.yaml` adds three more
+NVIDIA-side rate limit hits both at once. `config.yaml` adds four more
 models on independent providers/keys (`gh-gpt4o`, `groq-model`,
-`openrouter-model`) and a `fallbacks` chain in `litellm_settings` -- a 429
-on any model retries the others in priority order (NVIDIA pair first, then
-each other provider) until one succeeds.
+`openrouter-model`, `zai-model`) and a `fallbacks` chain in
+`litellm_settings` -- a 429 on any model retries the others in priority
+order (NVIDIA pair first, then each other provider) until one succeeds.
 
 1. **GitHub Models:** fine-grained PAT at
    <https://github.com/settings/personal-access-tokens> -- permission
    **Models: Read-only**, no repo access needed. Add `GITHUB_API_KEY=github_pat_...`
-   to `.env`.
+   to `.env`. **Note:** as of 2026-08-22 GitHub Models itself is returning
+   `github_models_retirement_brownout` on every request (GitHub's wording
+   is "scheduled retirement", not a transient outage) -- this fallback is
+   currently a fast no-op, not dead weight, but don't count on it serving
+   traffic.
 2. **Groq:** free key at <https://console.groq.com/keys>. Add
    `GROQ_API_KEY=gsk_...` to `.env`.
 3. **OpenRouter:** free key at <https://openrouter.ai> -> Sign Up -> Keys.
    Add `OPENROUTER_API_KEY=sk-or-v1-...` to `.env` (shared with
    `openrouter-runner.mjs` -- one key covers both).
-4. For the deploy workflow (`.github/workflows/deploy.yml`), add repo
-   secrets named **`GH_MODELS_API_KEY`**, **`GROQ_MODELS_API_KEY`**, and
-   **`OPENROUTER_API_KEY`** (GitHub Actions rejects repo secrets with a
-   `GITHUB_` prefix, reserved for its own token -- that's why the first two
-   are renamed; OpenRouter's isn't affected). The workflow maps them onto
-   the matching `.env` var names on the host for you.
-5. `docker compose restart litellm` to pick it all up.
+4. **Z.ai (GLM):** free key at <https://z.ai> -> API keys. Add
+   `ZAI_API_KEY=...` to `.env`. The model id in `config.yaml`
+   (`glm-4.5-flash`) is **unverified** -- confirm it against `GET
+   https://api.z.ai/api/paas/v4/models` (needs the key) once you have one,
+   the way `groq-model` and `openrouter-model`'s ids were confirmed against
+   their own `/models` endpoints.
+5. For the deploy workflow (`.github/workflows/deploy.yml`), add repo
+   secrets named **`GH_MODELS_API_KEY`**, **`GROQ_MODELS_API_KEY`**,
+   **`OPENROUTER_API_KEY`**, and **`ZAI_API_KEY`** (GitHub Actions rejects
+   repo secrets with a `GITHUB_` prefix, reserved for its own token --
+   that's why the first is renamed; the others aren't affected). The
+   workflow maps them onto the matching `.env` var names on the host for
+   you.
+6. `docker compose up -d litellm` to pick it all up (needs a container
+   recreate for new env vars, not just a restart -- `restart` reuses the
+   env the container already has).
 
-Any of the four keys can be left unset -- `os.environ/VAR` just resolves
+Any of the five keys can be left unset -- `os.environ/VAR` just resolves
 empty and that model 401s if actually dispatched, which only happens if
 every model ahead of it in the fallback chain is also failing.
+
+**Provider catalogs drift.** Two of these model ids (Groq's and
+OpenRouter's) were wrong on first pass -- the models existed when this file
+was originally written but had since been deprecated/repriced. Before
+trusting a fallback model id, check it against that provider's live
+`/models` endpoint rather than copying from docs or memory.
 
 ## Notes
 
