@@ -71,16 +71,15 @@ model_list:
   # Z.ai (GLM) -- OpenAI-compatible endpoint, same pattern openai-eval.mjs
   # already uses for Zhipu GLM. No native litellm provider prefix for it,
   # so route through the generic openai/ provider with an explicit api_base.
-  #
-  # UNVERIFIED as of 2026-08-22 -- no ZAI_API_KEY was available to check
-  # Z.ai's live model list, and this file's two other from-memory model-name
-  # guesses (Groq, OpenRouter, above) both turned out stale. Once
-  # ZAI_API_KEY is set, confirm this id against `GET
-  # https://api.z.ai/api/paas/v4/models` (needs the key -- it 401s without
-  # one) before trusting this fallback.
+  # Verified live against GET https://api.z.ai/api/paas/v4/models (needs a
+  # key -- 401s without one) on 2026-08-22. Full catalog at that point:
+  # glm-4.5, glm-4.5-air, glm-4.6, glm-4.7, glm-5, glm-5-turbo, glm-5.1,
+  # glm-5.2, glm-5.3 -- picked glm-4.6 as the general-purpose pick roughly
+  # matching the other fallbacks' caliber (gpt-4o, gpt-oss-120b,
+  # nemotron-3-ultra), not the bleeding-edge glm-5.x line.
   - model_name: zai-model
     litellm_params:
-      model: openai/glm-4.5-flash
+      model: openai/glm-4.6
       api_key: os.environ/ZAI_API_KEY
       api_base: https://api.z.ai/api/paas/v4/
 
