@@ -734,8 +734,7 @@ tracked_companies:
     enabled: true
   - name: Healthy.io
     careers_url: https://healthy.io/careers/
-    scan_method: websearch
-    scan_query: site:healthy.io "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/B4.004/positions?token=4B417841C3804B420EC02A54E1C4B4
     enabled: true
   - name: K Health
     careers_url: https://khealth.com/careers/
