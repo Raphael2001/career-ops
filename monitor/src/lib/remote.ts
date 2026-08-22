@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { parseScanStatus, parseContainers } from "./remote-parse.mjs";
 
 const execFileAsync = promisify(execFile);
 
@@ -40,25 +41,7 @@ export async function getScanStatus(): Promise<ScanStatus> {
     const out = await runRemote(
       `docker compose exec -T career-ops sh -c 'flock -n /tmp/discover-companies-native.lock -c true; echo LOCK_EXIT=$?; tail -n 40 /app/deploy/discover.log 2>/dev/null'`,
     );
-    const lines = out.split("\n");
-    const lockLine = lines.find((l) => l.startsWith("LOCK_EXIT="));
-    // flock -n exits 0 when it ACQUIRED the lock (nobody else held it) --
-    // "running" means the opposite: exit 1, lock was already held.
-    const running = lockLine?.trim() === "LOCK_EXIT=1";
-    const logLines = lines.filter((l) => !l.startsWith("LOCK_EXIT="));
-
-    const startedLine = [...logLines].reverse().find((l) => l.includes("starting"));
-    const startedMatch = startedLine?.match(/\[discover-native ([^\]]+)\]/);
-
-    const companyLine = [...logLines].reverse().find((l) => /\[\d+\]\s/.test(l));
-    const companyMatch = companyLine?.match(/\[\d+\]\s+(.+)$/);
-
-    return {
-      running,
-      currentCompany: companyMatch?.[1]?.trim() ?? null,
-      lastStartedAt: startedMatch?.[1] ?? null,
-      recentLines: logLines.filter((l) => l.trim().length > 0).slice(-15),
-    };
+    return parseScanStatus(out);
   } catch (err) {
     return {
       running: false,
@@ -81,11 +64,7 @@ export type ContainerStatus = {
 export async function getContainers(): Promise<{ containers: ContainerStatus[]; error?: string }> {
   try {
     const out = await runRemote("docker compose ps --format json");
-    const containers = out
-      .split("\n")
-      .filter((l) => l.trim().length > 0)
-      .map((l) => JSON.parse(l) as ContainerStatus);
-    return { containers };
+    return { containers: parseContainers(out) as ContainerStatus[] };
   } catch (err) {
     return { containers: [], error: err instanceof Error ? err.message : String(err) };
   }

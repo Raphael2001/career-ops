@@ -55,6 +55,23 @@ mounting the docker socket and bind-mounting `deploy/discover.log` into
 this app's own container instead -- not done here to keep it a plain
 `yarn dev`, no docker-compose service of its own.
 
+## Testing
+
+```bash
+yarn test
+```
+
+Covers `src/lib/remote-parse.mjs` -- the pure parsing that turns
+`docker compose ps --format json` and the scan's lock+log SSH output into
+`ScanStatus`/`ContainerStatus`, the actual logic that can silently break
+when either output format changes. Kept in a plain `.mjs` file (not `.ts`)
+so `node --test` runs it with zero build step, matching `web/`'s convention
+for the same kind of pure logic (see `web/src/lib/apply/exit.mjs`).
+
+The SSH plumbing itself (`runRemote`, `curlLiteLLM`, and the litellm
+`/health`/`/spend` calls) isn't covered here -- it needs a live host, and is
+exercised by hand against the real one instead.
+
 ## Refresh behavior
 
 Each page re-fetches on an interval via `router.refresh()` (`AutoRefresh`
