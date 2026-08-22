@@ -119,14 +119,29 @@ export function parseComeetResponse(json, companyName) {
       // Coerce each row to a safe object so null / non-object members can't throw.
       const j = (row && typeof row === 'object') ? row : {};
       // Resolve a display-only https URL; drop the position if none is usable.
+      // Try url_active_page first, but actually FALL BACK to
+      // url_comeet_hosted_page when it fails validation (non-https,
+      // malformed) instead of just picking whichever field is non-empty and
+      // stopping there. url_active_page is very commonly plain http:// (the
+      // tenant's own site, not force-redirected to https) even though
+      // url_comeet_hosted_page right alongside it is always a valid https
+      // Comeet-hosted URL -- treating "picked the wrong field" the same as
+      // "no usable url at all" silently dropped every position for any
+      // company whose careers page isn't https, which in practice meant the
+      // whole company read as "live but empty" (#2026-08-22, found via
+      // Backslash Security: real API returns 4 open jobs, all silently
+      // dropped here).
       let url = '';
-      const rawUrl = j.url_active_page || j.url_comeet_hosted_page || '';
-      if (typeof rawUrl === 'string' && rawUrl) {
+      for (const candidate of [j.url_active_page, j.url_comeet_hosted_page]) {
+        if (typeof candidate !== 'string' || !candidate) continue;
         try {
-          const parsed = new URL(rawUrl);
-          if (parsed.protocol === 'https:') url = parsed.href;
+          const parsed = new URL(candidate);
+          if (parsed.protocol === 'https:') {
+            url = parsed.href;
+            break;
+          }
         } catch {
-          // malformed URL → leave url = ''
+          // malformed → try the next candidate
         }
       }
 
