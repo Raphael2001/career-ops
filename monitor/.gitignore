@@ -1,0 +1,10 @@
+# career-ops monitor — self-contained ignore (does not touch core root .gitignore)
+/node_modules
+/.next*
+/out
+/dist
+/.turbo
+*.tsbuildinfo
+next-env.d.ts
+.env*.local
+.DS_Store

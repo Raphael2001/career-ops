@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+/* Dark-only dev-tool palette -- deep near-black surfaces, blue/amber accents,
+   semantic red/green/amber for pass/fail/degraded. No light mode: this is a
+   personal infra dashboard, not a product with varied audiences. */
+@theme {
+  --color-bg: #09090b;
+  --color-surface: #131316;
+  --color-surface-hover: #1c1c20;
+  --color-surface-raised: #19191d;
+  --color-border: #26262b;
+  --color-border-strong: #34343b;
+  --color-fg: #e4e4e7;
+  --color-muted: #9a9aa3;
+  --color-faint: #6b6b74;
+
+  --color-primary: #3b82f6;
+  --color-primary-soft: #3b82f61f;
+  --color-accent: #f59e0b;
+
+  --color-ok: #22c55e;
+  --color-ok-soft: #22c55e1a;
+  --color-warn: #f59e0b;
+  --color-warn-soft: #f59e0b1a;
+  --color-error: #ef4444;
+  --color-error-soft: #ef44441a;
+  --color-neutral: #71717a;
+  --color-neutral-soft: #71717a1a;
+
+  --font-sans: var(--font-fira-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-fira-code), ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-fg);
+}
+
+/* Tabular figures for anything numeric -- token counts, latencies, spend --
+   so columns of numbers don't jitter as digits change width. */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
