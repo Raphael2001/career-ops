@@ -40,5 +40,21 @@ jobs:
             mv .env.tmp .env
           done
 
+          # `./cops rebuild` always recreates the career-ops container,
+          # regardless of what changed -- which kills any discovery scan
+          # that happens to be running at that exact moment, with zero error
+          # output (the process just vanishes; this cost real hours to
+          # diagnose the first time, tracing it back to "which deploy landed
+          # right as it died"). Not blocking the deploy for it -- the scan is
+          # resumable (portals.yml/pipeline.md progress already persisted)
+          # and code fixes shouldn't wait on a job that can run for most of a
+          # day -- just making the interruption visible in THIS run's own
+          # log instead of a silent mystery days later.
+          if docker compose exec -T career-ops sh -c 'flock -n /tmp/discover-companies-native.lock -c true' 2>/dev/null; then
+            echo "No discovery scan running -- safe rebuild."
+          else
+            echo "::warning::A discovery scan is running right now -- this rebuild will kill it mid-run (progress already made is safe on disk; it'll just need re-running, either manually or at tonight's cron)."
+          fi
+
           ./cops rebuild
           ./cops doctor
