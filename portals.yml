@@ -668,8 +668,7 @@ tracked_companies:
     enabled: true
   - name: Bridgewise
     careers_url: https://www.bridgewise.com/careers
-    scan_method: websearch
-    scan_query: site:www.bridgewise.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/F9.009/positions?token=9F945CF1DEB1DEB027E431DD04FC81DEB
     enabled: true
   - name: Global-e
     careers_url: https://www.global-e.com/careers/
