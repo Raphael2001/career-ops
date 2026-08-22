@@ -11,6 +11,15 @@
 # what that provider calls the model.
 
 model_list:
+  # Cloudflare Workers AI -- included in the Workers Free plan with a daily
+  # quota. This is the default model for headless Career-Ops automation.
+  - model_name: cloudflare/@cf/zai-org/glm-4.7-flash
+    litellm_params:
+      model: cloudflare/@cf/zai-org/glm-4.7-flash
+      api_key: os.environ/CLOUDFLARE_API_TOKEN
+      extra_headers:
+        cf-aig-gateway-id: career-ops
+
   - model_name: nvidia/nemotron-3.5-lightning-30b-a3b
     litellm_params:
       model: nvidia_nim/nvidia/nemotron-3.5-lightning-30b-a3b
@@ -77,13 +86,6 @@ model_list:
   # one Mistral's own docs describe as free-tier eligible; the others
   # working too may just reflect this account's current trial credits
   # rather than a guaranteed-free tier long-term.
-  #
-  # Cerebras (CEREBRAS_API_KEY, already wired into docker-compose.yml/
-  # deploy.yml) was tried alongside this but every model on the account
-  # 402s "Payment required" -- needs a dashboard step on cloud.cerebras.ai
-  # before any model there is usable, not a model-id problem. Add a
-  # model_list entry here (litellm_params.model: cerebras/<id>) once
-  # that's sorted.
   - model_name: mistral-small-latest
     litellm_params:
       model: mistral/mistral-small-latest
@@ -92,10 +94,11 @@ model_list:
 litellm_settings:
   drop_params: true
   # On a 429 (rate limit), retry against the fallback chain, one model
-  # scored on this priority order (NVIDIA models first -- cheapest/fastest
-  # for this repo's workloads -- then each other provider/key, so a
+  # scored on this priority order (Cloudflare first, then NVIDIA and each
+  # independent provider/key, so a
   # rate limit on one provider doesn't take down every model at once):
-  # nvidia/nemotron-3-ultra-550b-a55b -> nvidia/nemotron-3.5-lightning-30b-a3b
+  # cloudflare/@cf/zai-org/glm-4.7-flash -> nvidia/nemotron-3-ultra-550b-a55b
+  #   -> nvidia/nemotron-3.5-lightning-30b-a3b
   #   -> openai/gpt-oss-120b -> nvidia/nemotron-3-ultra-550b-a55b:free
   #   -> glm-4.7-flash -> mistral-small-latest
   #
@@ -105,12 +108,13 @@ litellm_settings:
   # GITHUB_API_KEY / GH_MODELS_API_KEY are unused now; safe to delete if
   # you want to tidy up the repo secret and .env line.
   fallbacks:
-    - nvidia/nemotron-3-ultra-550b-a55b: ["nvidia/nemotron-3.5-lightning-30b-a3b", "openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash", "mistral-small-latest"]
-    - nvidia/nemotron-3.5-lightning-30b-a3b: ["nvidia/nemotron-3-ultra-550b-a55b", "openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash", "mistral-small-latest"]
-    - openai/gpt-oss-120b: ["nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash", "mistral-small-latest", "nvidia/nemotron-3-ultra-550b-a55b"]
-    - nvidia/nemotron-3-ultra-550b-a55b:free: ["openai/gpt-oss-120b", "glm-4.7-flash", "mistral-small-latest", "nvidia/nemotron-3-ultra-550b-a55b"]
-    - glm-4.7-flash: ["openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "mistral-small-latest", "nvidia/nemotron-3-ultra-550b-a55b"]
-    - mistral-small-latest: ["openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash", "nvidia/nemotron-3-ultra-550b-a55b"]
+    - cloudflare/@cf/zai-org/glm-4.7-flash: ["nvidia/nemotron-3-ultra-550b-a55b", "nvidia/nemotron-3.5-lightning-30b-a3b", "openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash", "mistral-small-latest"]
+    - nvidia/nemotron-3-ultra-550b-a55b: ["cloudflare/@cf/zai-org/glm-4.7-flash", "nvidia/nemotron-3.5-lightning-30b-a3b", "openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash", "mistral-small-latest"]
+    - nvidia/nemotron-3.5-lightning-30b-a3b: ["cloudflare/@cf/zai-org/glm-4.7-flash", "nvidia/nemotron-3-ultra-550b-a55b", "openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash", "mistral-small-latest"]
+    - openai/gpt-oss-120b: ["cloudflare/@cf/zai-org/glm-4.7-flash", "nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash", "mistral-small-latest", "nvidia/nemotron-3-ultra-550b-a55b"]
+    - nvidia/nemotron-3-ultra-550b-a55b:free: ["cloudflare/@cf/zai-org/glm-4.7-flash", "openai/gpt-oss-120b", "glm-4.7-flash", "mistral-small-latest", "nvidia/nemotron-3-ultra-550b-a55b"]
+    - glm-4.7-flash: ["cloudflare/@cf/zai-org/glm-4.7-flash", "openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "mistral-small-latest", "nvidia/nemotron-3-ultra-550b-a55b"]
+    - mistral-small-latest: ["cloudflare/@cf/zai-org/glm-4.7-flash", "openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash", "nvidia/nemotron-3-ultra-550b-a55b"]
   num_retries: 2
 
 general_settings:
