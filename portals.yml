@@ -612,9 +612,7 @@ tracked_companies:
     scan_query: site:panorays.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
     enabled: true
   - name: Pentera
-    careers_url: https://www.comeet.com/jobs/pentera/C5.00D
-    scan_method: websearch
-    scan_query: site:pentera.io "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    careers_url: https://pentera.pinpointhq.com
     enabled: true
   - name: Piiano
     careers_url: https://www.piiano.com/careers
