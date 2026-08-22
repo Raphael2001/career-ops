@@ -18,7 +18,6 @@ human at the keyboard to log in.
 2. On the host, add to `.env` (never commit this file):
    ```bash
    NVIDIA_API_KEY=nvapi-...
-   GITHUB_API_KEY=github_pat_...   # fallback provider, see below
    LITELLM_MASTER_KEY=$(openssl rand -hex 32)
    ```
 3. Bring the proxy up alongside the main container:
@@ -49,11 +48,11 @@ From the host (outside Docker), swap the base URL for the mapped port:
 export ANTHROPIC_BASE_URL=http://localhost:4001
 ```
 
-## Rate-limit fallback (GitHub Models, Groq, OpenRouter, Z.ai)
+## Rate-limit fallback (Groq, OpenRouter, Z.ai)
 
 The two NVIDIA models above share one `NVIDIA_API_KEY`, so an NVIDIA-side
-rate limit hits both at once. `config.yaml` adds four more models
-(`gpt-4o`, `openai/gpt-oss-120b`, `nvidia/nemotron-3-ultra-550b-a55b:free`,
+rate limit hits both at once. `config.yaml` adds three more models
+(`openai/gpt-oss-120b`, `nvidia/nemotron-3-ultra-550b-a55b:free`,
 `glm-4.7-flash`) and a `fallbacks` chain in `litellm_settings` -- a 429 on
 any model retries the others in priority order (NVIDIA pair first, then
 each other provider) until one succeeds. Every `model_name` in
@@ -61,38 +60,30 @@ each other provider) until one succeeds. Every `model_name` in
 what you pass as `ANTHROPIC_MODEL`/`CLAUDE_HEADLESS_MODEL` is exactly what
 that provider calls the model.
 
-1. **GitHub Models:** fine-grained PAT at
-   <https://github.com/settings/personal-access-tokens> -- permission
-   **Models: Read-only**, no repo access needed. Add `GITHUB_API_KEY=github_pat_...`
-   to `.env`. **Note:** as of 2026-08-22 GitHub Models itself is returning
-   `github_models_retirement_brownout` on every request (GitHub's wording
-   is "scheduled retirement", not a transient outage) -- this fallback is
-   currently a fast no-op, not dead weight, but don't count on it serving
-   traffic.
-2. **Groq:** free key at <https://console.groq.com/keys>. Add
+(GitHub Models was here too as a 6th fallback -- dropped 2026-08-22, GitHub
+is retiring the service entirely, not a transient outage.)
+
+1. **Groq:** free key at <https://console.groq.com/keys>. Add
    `GROQ_API_KEY=gsk_...` to `.env`.
-3. **OpenRouter:** free key at <https://openrouter.ai> -> Sign Up -> Keys.
+2. **OpenRouter:** free key at <https://openrouter.ai> -> Sign Up -> Keys.
    Add `OPENROUTER_API_KEY=sk-or-v1-...` to `.env` (shared with
    `openrouter-runner.mjs`).
-4. **Z.ai:** free key at <https://z.ai> -> API keys. Add
+3. **Z.ai:** free key at <https://z.ai> -> API keys. Add
    `ZAI_API_KEY=...` to `.env`. **Use `glm-4.7-flash`, not the paid
    glm-4.x/glm-5.x line** -- every model listed by `GET
    https://api.z.ai/api/paas/v4/models` is pay-as-you-go and 429s
    "Insufficient balance" on a $0 account; `glm-4.7-flash` is a genuinely
    free model that isn't even listed by that endpoint (confirmed against
    Z.ai's own docs and a live test call on 2026-08-22).
-5. For the deploy workflow (`.github/workflows/deploy.yml`), add repo
-   secrets named **`GH_MODELS_API_KEY`**, **`GROQ_MODELS_API_KEY`**,
-   **`OPENROUTER_API_KEY`**, and **`ZAI_API_KEY`** (GitHub Actions rejects
-   repo secrets with a `GITHUB_` prefix, reserved for its own token --
-   that's why the first is renamed; the others aren't affected). The
-   workflow maps them onto the matching `.env` var names on the host for
-   you.
-6. `docker compose up -d litellm` to pick it all up (needs a container
+4. For the deploy workflow (`.github/workflows/deploy.yml`), add repo
+   secrets named **`GROQ_MODELS_API_KEY`**, **`OPENROUTER_API_KEY`**, and
+   **`ZAI_API_KEY`**. The workflow maps them onto the matching `.env` var
+   names on the host for you.
+5. `docker compose up -d litellm` to pick it all up (needs a container
    recreate for new env vars, not just a restart -- `restart` reuses the
    env the container already has).
 
-Any of the four keys can be left unset -- `os.environ/VAR` just resolves
+Any of the three keys can be left unset -- `os.environ/VAR` just resolves
 empty and that model 401s if actually dispatched, which only happens if
 every model ahead of it in the fallback chain is also failing.
 

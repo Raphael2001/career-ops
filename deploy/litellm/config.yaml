@@ -7,7 +7,7 @@
 # this proxy once it's running.
 #
 # model_name below is each provider's own real model id (not a made-up
-# alias) -- what you set ANTHROPIC_MODEL/CLAUDE_HEADLESS_MODEL to is exactly
+# alias) -- what you set ANTHROPIC_MODEL/CLAUDE_HEADLESS_MODEL is exactly
 # what that provider calls the model.
 
 model_list:
@@ -31,23 +31,6 @@ model_list:
       model: nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b
       api_key: os.environ/NVIDIA_API_KEY
       api_base: https://integrate.api.nvidia.com/v1
-
-  # Fallback on a different provider (GitHub Models, free tier) so a rate
-  # limit on the NVIDIA key doesn't take down both models above -- they
-  # share one NVIDIA_API_KEY, so an NVIDIA-side limit hits both at once.
-  # GITHUB_API_KEY is a GitHub PAT with "models: read" permission:
-  # https://github.com/settings/personal-access-tokens
-  #
-  # As of 2026-08-22, GitHub Models itself is returning
-  # github_models_retirement_brownout on every request ("scheduled
-  # retirement", GitHub's wording -- not a transient outage). Left wired
-  # since a dead model just fails fast and falls through the chain below,
-  # but don't expect it to actually serve traffic; check
-  # https://github.com/github/roadmap for its status before relying on it.
-  - model_name: gpt-4o
-    litellm_params:
-      model: github/gpt-4o
-      api_key: os.environ/GITHUB_API_KEY
 
   # Groq -- fast free-tier inference, independent key/quota. Verified live
   # against GET https://api.groq.com/openai/v1/models on 2026-08-22 --
@@ -94,15 +77,20 @@ litellm_settings:
   # for this repo's workloads -- then each other provider/key, so a
   # rate limit on one provider doesn't take down every model at once):
   # nvidia/nemotron-3-ultra-550b-a55b -> nvidia/nemotron-3.5-lightning-30b-a3b
-  #   -> gpt-4o -> openai/gpt-oss-120b -> nvidia/nemotron-3-ultra-550b-a55b:free
+  #   -> openai/gpt-oss-120b -> nvidia/nemotron-3-ultra-550b-a55b:free
   #   -> glm-4.7-flash
+  #
+  # GitHub Models (gpt-4o) was here as a 6th fallback but was dropped --
+  # GitHub is retiring the service entirely (github_models_retirement_
+  # brownout on every request as of 2026-08-22), not a transient outage.
+  # GITHUB_API_KEY / GH_MODELS_API_KEY are unused now; safe to delete if
+  # you want to tidy up the repo secret and .env line.
   fallbacks:
-    - nvidia/nemotron-3-ultra-550b-a55b: ["nvidia/nemotron-3.5-lightning-30b-a3b", "gpt-4o", "openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash"]
-    - nvidia/nemotron-3.5-lightning-30b-a3b: ["nvidia/nemotron-3-ultra-550b-a55b", "gpt-4o", "openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash"]
-    - gpt-4o: ["openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash", "nvidia/nemotron-3-ultra-550b-a55b"]
-    - openai/gpt-oss-120b: ["gpt-4o", "nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash", "nvidia/nemotron-3-ultra-550b-a55b"]
-    - nvidia/nemotron-3-ultra-550b-a55b:free: ["gpt-4o", "openai/gpt-oss-120b", "glm-4.7-flash", "nvidia/nemotron-3-ultra-550b-a55b"]
-    - glm-4.7-flash: ["gpt-4o", "openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "nvidia/nemotron-3-ultra-550b-a55b"]
+    - nvidia/nemotron-3-ultra-550b-a55b: ["nvidia/nemotron-3.5-lightning-30b-a3b", "openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash"]
+    - nvidia/nemotron-3.5-lightning-30b-a3b: ["nvidia/nemotron-3-ultra-550b-a55b", "openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash"]
+    - openai/gpt-oss-120b: ["nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash", "nvidia/nemotron-3-ultra-550b-a55b"]
+    - nvidia/nemotron-3-ultra-550b-a55b:free: ["openai/gpt-oss-120b", "glm-4.7-flash", "nvidia/nemotron-3-ultra-550b-a55b"]
+    - glm-4.7-flash: ["openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "nvidia/nemotron-3-ultra-550b-a55b"]
   num_retries: 2
 
 general_settings:
