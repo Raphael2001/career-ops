@@ -764,8 +764,7 @@ tracked_companies:
     enabled: true
   - name: Arbe Robotics
     careers_url: https://www.arberobotics.com/careers/
-    scan_method: websearch
-    scan_query: site:www.arberobotics.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/C6.001/positions?token=6C12886D821B0414432886144328862F472F47
     enabled: true
   - name: Autotalks
     careers_url: https://www.auto-talks.com/careers/
