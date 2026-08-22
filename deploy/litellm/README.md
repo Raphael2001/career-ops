@@ -18,6 +18,7 @@ human at the keyboard to log in.
 2. On the host, add to `.env` (never commit this file):
    ```bash
    NVIDIA_API_KEY=nvapi-...
+   GITHUB_API_KEY=github_pat_...   # fallback provider, see below
    LITELLM_MASTER_KEY=$(openssl rand -hex 32)
    ```
 3. Bring the proxy up alongside the main container:
@@ -47,6 +48,36 @@ From the host (outside Docker), swap the base URL for the mapped port:
 ```bash
 export ANTHROPIC_BASE_URL=http://localhost:4001
 ```
+
+## Rate-limit fallback (GitHub Models, Groq, OpenRouter)
+
+`agent-model` and `nemotron-lightning` share one `NVIDIA_API_KEY`, so an
+NVIDIA-side rate limit hits both at once. `config.yaml` adds three more
+models on independent providers/keys (`gh-gpt4o`, `groq-model`,
+`openrouter-model`) and a `fallbacks` chain in `litellm_settings` -- a 429
+on any model retries the others in priority order (NVIDIA pair first, then
+each other provider) until one succeeds.
+
+1. **GitHub Models:** fine-grained PAT at
+   <https://github.com/settings/personal-access-tokens> -- permission
+   **Models: Read-only**, no repo access needed. Add `GITHUB_API_KEY=github_pat_...`
+   to `.env`.
+2. **Groq:** free key at <https://console.groq.com/keys>. Add
+   `GROQ_API_KEY=gsk_...` to `.env`.
+3. **OpenRouter:** free key at <https://openrouter.ai> -> Sign Up -> Keys.
+   Add `OPENROUTER_API_KEY=sk-or-v1-...` to `.env` (shared with
+   `openrouter-runner.mjs` -- one key covers both).
+4. For the deploy workflow (`.github/workflows/deploy.yml`), add repo
+   secrets named **`GH_MODELS_API_KEY`**, **`GROQ_MODELS_API_KEY`**, and
+   **`OPENROUTER_API_KEY`** (GitHub Actions rejects repo secrets with a
+   `GITHUB_` prefix, reserved for its own token -- that's why the first two
+   are renamed; OpenRouter's isn't affected). The workflow maps them onto
+   the matching `.env` var names on the host for you.
+5. `docker compose restart litellm` to pick it all up.
+
+Any of the four keys can be left unset -- `os.environ/VAR` just resolves
+empty and that model 401s if actually dispatched, which only happens if
+every model ahead of it in the fallback chain is also failing.
 
 ## Notes
 

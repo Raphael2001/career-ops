@@ -28,8 +28,43 @@ model_list:
       api_key: os.environ/NVIDIA_API_KEY
       api_base: https://integrate.api.nvidia.com/v1
 
+  # Fallback on a different provider (GitHub Models, free tier) so a rate
+  # limit on the NVIDIA key doesn't take down both models above -- they
+  # share one NVIDIA_API_KEY, so an NVIDIA-side limit hits both at once.
+  # GITHUB_API_KEY is a GitHub PAT with "models: read" permission:
+  # https://github.com/settings/personal-access-tokens
+  - model_name: gh-gpt4o
+    litellm_params:
+      model: github/gpt-4o
+      api_key: os.environ/GITHUB_API_KEY
+
+  # Groq -- fast free-tier inference, independent key/quota.
+  - model_name: groq-model
+    litellm_params:
+      model: groq/llama-3.3-70b-versatile
+      api_key: os.environ/GROQ_API_KEY
+
+  # OpenRouter -- broad free-tier catalog, independent key/quota.
+  # OPENROUTER_API_KEY is shared with openrouter-runner.mjs (see .env.example).
+  - model_name: openrouter-model
+    litellm_params:
+      model: openrouter/meta-llama/llama-3.3-70b-instruct:free
+      api_key: os.environ/OPENROUTER_API_KEY
+
 litellm_settings:
   drop_params: true
+  # On a 429 (rate limit), retry against the fallback chain, one model
+  # scored on this priority order (NVIDIA models first -- cheapest/fastest
+  # for this repo's workloads -- then each other provider/key, so a
+  # rate limit on one provider doesn't take down every model at once):
+  # agent-model -> nemotron-lightning -> gh-gpt4o -> groq-model -> openrouter-model
+  fallbacks:
+    - agent-model: ["nemotron-lightning", "gh-gpt4o", "groq-model", "openrouter-model"]
+    - nemotron-lightning: ["agent-model", "gh-gpt4o", "groq-model", "openrouter-model"]
+    - gh-gpt4o: ["groq-model", "openrouter-model", "agent-model"]
+    - groq-model: ["gh-gpt4o", "openrouter-model", "agent-model"]
+    - openrouter-model: ["gh-gpt4o", "groq-model", "agent-model"]
+  num_retries: 2
 
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY
