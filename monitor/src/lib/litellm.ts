@@ -55,8 +55,23 @@ export type HealthReport = {
 // to 100s wall-clock (NVIDIA NIM's free tier occasionally needs a retry
 // mid-stream). Give it real headroom rather than trimming it and reporting
 // a false failure.
+//
+// Deduplicated across concurrent callers (module-scoped, shared for the
+// life of this server process): a client that times out client-side (e.g.
+// `curl -m 5`) does NOT cancel the in-flight fetch here, so without this a
+// burst of impatient requests -- two browser tabs, a curl retried a few
+// times, AutoRefresh firing while a manual recheck is still running --
+// stacks up multiple real 6-model sweeps against litellm concurrently
+// instead of one. That's a real, observed cause of host memory pressure,
+// not a theoretical one.
+let inFlightHealth: Promise<HealthReport> | null = null;
+
 export async function getHealth(): Promise<HealthReport> {
-  return fetchJson<HealthReport>("/health", 150_000);
+  if (inFlightHealth) return inFlightHealth;
+  inFlightHealth = fetchJson<HealthReport>("/health", 150_000).finally(() => {
+    inFlightHealth = null;
+  });
+  return inFlightHealth;
 }
 
 export type SpendLogEntry = {
