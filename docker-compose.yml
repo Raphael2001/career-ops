@@ -28,6 +28,9 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:-}
+      # Write APIs are loopback-only by default. Add a trusted LAN hostname or
+      # IP in .env when the dashboard is intentionally accessed over the LAN.
+      - CAREER_OPS_WEB_ALLOWED_HOSTS=${CAREER_OPS_WEB_ALLOWED_HOSTS:-}
       # Default every `claude` call in this container -- including the web
       # UI's built-in Ask chat (/api/run, spawns `claude -p` directly) -- to
       # the LiteLLM/NVIDIA proxy, since there's no browser here for a real
