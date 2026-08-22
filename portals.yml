@@ -567,8 +567,7 @@ tracked_companies:
     enabled: true
   - name: DoControl
     careers_url: https://www.docontrol.io/careers
-    scan_method: websearch
-    scan_query: site:www.docontrol.io "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/07.003/positions
     enabled: true
   - name: HUB Security
     careers_url: https://hubsecurity.com/careers/
