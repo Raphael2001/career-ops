@@ -485,11 +485,11 @@ tracked_companies:
     notes: Santa Clara/Tel Aviv. Media/image management API.
     enabled: true
   - name: Wiz
-    careers_url: https://jobs.ashbyhq.com/wiz
+    careers_url: https://boards.greenhouse.io/wizinc
     notes: Tel Aviv/NY. Cloud security platform, one of the fastest-growing security unicorns.
     enabled: true
   - name: Snyk
-    careers_url: https://jobs.ashbyhq.com/snyk
+    careers_url: https://snyk.wd103.myworkdayjobs.com/External
     notes: London/Tel Aviv. Developer-first security (SAST/SCA).
     enabled: true
   - name: Redis
@@ -568,7 +568,8 @@ tracked_companies:
     enabled: true
   - name: DoControl
     careers_url: https://www.docontrol.io/careers
-    api: https://www.comeet.co/careers-api/2.0/company/07.003/positions
+    scan_method: websearch
+    scan_query: site:www.docontrol.io "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
     enabled: true
   - name: HUB Security
     careers_url: https://hubsecurity.com/careers/
