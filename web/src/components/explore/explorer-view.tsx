@@ -69,10 +69,13 @@ export function ExplorerView({
           },
         }),
       });
-      if (!response.ok) throw new Error();
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.error || `HTTP ${response.status}`);
+      }
       setSaveNotice("Saved to portals.yml");
-    } catch {
-      setSaveNotice("Could not save defaults");
+    } catch (e) {
+      setSaveNotice(`Could not save defaults: ${e instanceof Error ? e.message : "unknown error"}`);
     } finally {
       setSavingDefaults(false);
     }

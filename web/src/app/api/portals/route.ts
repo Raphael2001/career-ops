@@ -53,14 +53,28 @@ function yamlScalar(v: string): string {
 function spliceYamlList(content: string, parentKey: string, childKey: string, items: string[] | null): string {
   if (items === null) return content;
 
-  const rendered = items.map((v) => `    - ${yamlScalar(v)}\n`).join("");
-  const childRe = new RegExp(`(^  ${childKey}:\\n)((?:    -.*\\n|    #.*\\n)*)`, "m");
+  // Empty stays flow-style (`key: []`), matching how every filter starts
+  // life and how it's written elsewhere in this file -- `key:\n` with no
+  // indented children parses as `key: null` in YAML, not `[]`, and
+  // downstream consumers (scan.mjs et al.) call array methods on these.
+  const line = items.length
+    ? `  ${childKey}:\n${items.map((v) => `    - ${yamlScalar(v)}\n`).join("")}`
+    : `  ${childKey}: []\n`;
+  // Matches BOTH block-style (`key:\n    - item`) and flow-style (`key: []`)
+  // existing values -- the child key's colon can be followed by an inline
+  // scalar (`.*`) on the same line, not just a bare newline. Without the
+  // `.*`, an existing `block: []` (how every filter starts life, and how it
+  // stays whenever the user hasn't excluded anything) never matches, so the
+  // "insert" branch below fires instead and appends a SECOND `block:` key --
+  // confirmed live: produced `duplicated mapping key` and the write was
+  // rejected by the pre-write YAML parse guard.
+  const childRe = new RegExp(`^  ${childKey}:.*\\n((?:    -.*\\n|    #.*\\n)*)`, "m");
 
   // Does the parent section exist at all?
   const parentRe = new RegExp(`^${parentKey}:\\n`, "m");
   if (!parentRe.test(content)) {
     // No title_filter:/location_filter: block at all yet -- append a fresh one.
-    const block = `${parentKey}:\n  ${childKey}:\n${rendered}`;
+    const block = `${parentKey}:\n${line}`;
     return content.trimEnd() + "\n\n" + block;
   }
 
@@ -86,14 +100,13 @@ function spliceYamlList(content: string, parentKey: string, childKey: string, it
   const parentSpan = afterParent.slice(0, spanEnd);
 
   if (childRe.test(parentSpan)) {
-    const newSpan = parentSpan.replace(childRe, (_m, head: string) => `${head}${rendered}`);
+    const newSpan = parentSpan.replace(childRe, () => line);
     return content.slice(0, parentStart) + newSpan + content.slice(parentStart + parentSpan.length);
   }
 
   // Parent exists, child doesn't -- insert right after the `parentKey:` line.
   const insertAt = parentStart + firstNewline + 1;
-  const block = `  ${childKey}:\n${rendered}`;
-  return content.slice(0, insertAt) + block + content.slice(insertAt);
+  return content.slice(0, insertAt) + line + content.slice(insertAt);
 }
 
 export async function POST(req: Request) {

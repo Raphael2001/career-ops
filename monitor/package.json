@@ -2,6 +2,7 @@
   "name": "@career-ops/monitor",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "yarn@4.6.0",
   "description": "Infra monitor for career-ops -- LiteLLM model health/usage, discovery-scan status, docker container status.",
   "scripts": {
     "dev": "next dev",
