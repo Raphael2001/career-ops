@@ -1,7 +1,7 @@
 # LiteLLM proxy: Claude Code on free provider tiers
 
-Fronts Cloudflare Workers AI's `@cf/zai-org/glm-4.7-flash` (Workers Free
-daily quota) behind an Anthropic-compatible
+Fronts NVIDIA NIM's `nvidia/nemotron-3.5-lightning-30b-a3b` (free tier, 30B
+total / 3B active MoE, 1M context) behind an Anthropic-compatible
 `/v1/messages` endpoint, so `claude` (Claude Code CLI) can run **headless** --
 cron jobs, CI deploy steps, `discover-companies.sh` -- without an interactive
 login or burning Anthropic credits.
@@ -38,7 +38,7 @@ set these three env vars before running `claude`:
 ```bash
 export ANTHROPIC_BASE_URL=http://litellm:4000   # service name, not localhost
 export ANTHROPIC_API_KEY="$LITELLM_MASTER_KEY"
-export ANTHROPIC_MODEL=cloudflare/@cf/zai-org/glm-4.7-flash
+export ANTHROPIC_MODEL=nvidia/nemotron-3.5-lightning-30b-a3b
 claude -p "your headless prompt here"
 ```
 
@@ -50,12 +50,13 @@ export ANTHROPIC_BASE_URL=http://localhost:4001
 
 ## Rate-limit fallback (NVIDIA, Groq, OpenRouter, Z.ai, Mistral)
 
-Cloudflare is the default. `config.yaml` falls back to two NVIDIA models and
-four independent-provider models
+The two NVIDIA models above share one `NVIDIA_API_KEY`, so an NVIDIA-side
+rate limit hits both at once. `config.yaml` adds Cloudflare and four other
+independent-provider models
 (`openai/gpt-oss-120b`, `nvidia/nemotron-3-ultra-550b-a55b:free`,
 `glm-4.7-flash`, `mistral-small-latest`) and a `fallbacks` chain in
 `litellm_settings` -- a 429 on any model retries the others in priority
-order until one succeeds.
+order until one succeeds, with Cloudflare last.
 Every `model_name` in `config.yaml` is the provider's own real model id,
 not an invented alias -- what you pass as
 `ANTHROPIC_MODEL`/`CLAUDE_HEADLESS_MODEL` is exactly what that provider

@@ -26,7 +26,7 @@ export ANTHROPIC_API_KEY="$LITELLM_MASTER_KEY"
 # deploy/claude-headless.sh ...` for genuinely agentic, multi-step tool-use
 # tasks -- see deploy/litellm/config.yaml for what's available and why
 # you'd pick one over the other.
-export ANTHROPIC_MODEL="${CLAUDE_HEADLESS_MODEL:-cloudflare/@cf/zai-org/glm-4.7-flash}"
+export ANTHROPIC_MODEL="${CLAUDE_HEADLESS_MODEL:-nvidia/nemotron-3.5-lightning-30b-a3b}"
 
 # --print: non-interactive, skips the workspace-trust dialog for --mcp-config.
 # --dangerously-skip-permissions refuses to run as root, and this container
