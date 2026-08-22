@@ -48,20 +48,21 @@ From the host (outside Docker), swap the base URL for the mapped port:
 export ANTHROPIC_BASE_URL=http://localhost:4001
 ```
 
-## Rate-limit fallback (Groq, OpenRouter, Z.ai)
+## Rate-limit fallback (Groq, OpenRouter, Z.ai, Mistral)
 
 The two NVIDIA models above share one `NVIDIA_API_KEY`, so an NVIDIA-side
-rate limit hits both at once. `config.yaml` adds three more models
+rate limit hits both at once. `config.yaml` adds four more models
 (`openai/gpt-oss-120b`, `nvidia/nemotron-3-ultra-550b-a55b:free`,
-`glm-4.7-flash`) and a `fallbacks` chain in `litellm_settings` -- a 429 on
-any model retries the others in priority order (NVIDIA pair first, then
-each other provider) until one succeeds. Every `model_name` in
-`config.yaml` is the provider's own real model id, not an invented alias --
-what you pass as `ANTHROPIC_MODEL`/`CLAUDE_HEADLESS_MODEL` is exactly what
-that provider calls the model.
+`glm-4.7-flash`, `mistral-small-latest`) and a `fallbacks` chain in
+`litellm_settings` -- a 429 on any model retries the others in priority
+order (NVIDIA pair first, then each other provider) until one succeeds.
+Every `model_name` in `config.yaml` is the provider's own real model id,
+not an invented alias -- what you pass as
+`ANTHROPIC_MODEL`/`CLAUDE_HEADLESS_MODEL` is exactly what that provider
+calls the model.
 
-(GitHub Models was here too as a 6th fallback -- dropped 2026-08-22, GitHub
-is retiring the service entirely, not a transient outage.)
+(GitHub Models was here too as a fallback -- dropped 2026-08-22, GitHub is
+retiring the service entirely, not a transient outage.)
 
 1. **Groq:** free key at <https://console.groq.com/keys>. Add
    `GROQ_API_KEY=gsk_...` to `.env`.
@@ -75,17 +76,31 @@ is retiring the service entirely, not a transient outage.)
    "Insufficient balance" on a $0 account; `glm-4.7-flash` is a genuinely
    free model that isn't even listed by that endpoint (confirmed against
    Z.ai's own docs and a live test call on 2026-08-22).
-4. For the deploy workflow (`.github/workflows/deploy.yml`), add repo
-   secrets named **`GROQ_MODELS_API_KEY`**, **`OPENROUTER_API_KEY`**, and
-   **`ZAI_API_KEY`**. The workflow maps them onto the matching `.env` var
-   names on the host for you.
-5. `docker compose up -d litellm` to pick it all up (needs a container
+4. **Mistral:** free key at <https://console.mistral.ai>. Add
+   `MISTRAL_API_KEY=...` to `.env`. `mistral-small-latest` is the id
+   Mistral's own docs describe as free-tier eligible, verified with a live
+   test call on 2026-08-22.
+5. For the deploy workflow (`.github/workflows/deploy.yml`), add repo
+   secrets named **`GROQ_MODELS_API_KEY`**, **`OPENROUTER_API_KEY`**,
+   **`ZAI_API_KEY`**, and **`MISTRAL_API_KEY`**. The workflow maps them
+   onto the matching `.env` var names on the host for you.
+6. `docker compose up -d litellm` to pick it all up (needs a container
    recreate for new env vars, not just a restart -- `restart` reuses the
    env the container already has).
 
-Any of the three keys can be left unset -- `os.environ/VAR` just resolves
+Any of the four keys can be left unset -- `os.environ/VAR` just resolves
 empty and that model 401s if actually dispatched, which only happens if
 every model ahead of it in the fallback chain is also failing.
+
+**Cerebras (`CEREBRAS_API_KEY`) is wired into `docker-compose.yml`/
+`deploy.yml` but has no `model_list` entry yet** -- every model on that
+account (`gpt-oss-120b`, `gemma-4-31b`) 402s "Payment required" despite
+Cerebras's own docs describing a no-credit-card free tier. This looks like
+an account-side step needed on cloud.cerebras.ai (activating/selecting the
+free plan), not a model-id problem -- the other free-tier ids from their
+docs (`llama-3-3-70b`, `qwen-3-32b`, etc.) don't even exist on this
+account. Add a `model_list` entry (`litellm_params.model:
+cerebras/<id>`) once that's sorted.
 
 **Provider catalogs drift, and a provider's own `/models` endpoint isn't
 always complete.** Three of these model ids were wrong on first pass:
