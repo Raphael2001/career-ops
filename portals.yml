@@ -576,8 +576,7 @@ tracked_companies:
     enabled: true
   - name: Hunters
     careers_url: https://www.hunters.security/careers
-    scan_method: websearch
-    scan_query: site:www.hunters.security "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/67.007/positions?token=7672C6A163533D11D9C429F33D10250333D1
     enabled: true
   - name: Island
     careers_url: https://www.island.io/careers
