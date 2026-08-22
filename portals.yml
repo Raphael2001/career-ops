@@ -1040,7 +1040,7 @@ tracked_companies:
     scan_query: site:www.empathy.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
     enabled: true
   - name: Gong
-    careers_url: https://gong.recruitee.com
+    careers_url: https://boards.greenhouse.io/gongio
     enabled: true
   - name: Guesty
     careers_url: https://www.guesty.com/careers/
