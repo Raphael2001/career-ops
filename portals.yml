@@ -57,6 +57,13 @@ title_filter:
   negative:
     - Junior
     - Intern
+    - Graduate
+    - Entry Level
+    - Staff
+    - Principal
+    - Lead
+    - Manager
+    - Director
     - .NET
     - iOS
     - Android
