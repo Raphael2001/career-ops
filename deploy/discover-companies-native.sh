@@ -102,9 +102,29 @@ while IFS= read -r line; do
     continue
   fi
   echo "$LOG_PREFIX [$company_count] $name"
-  result="$(CLAUDE_HEADLESS_MODEL=agent-model timeout 600 deploy/claude-headless.sh \
+  # NOT `result="$(timeout 600 deploy/claude-headless.sh ... )"`: `timeout`
+  # only signals its DIRECT child. claude-headless.sh execs into `claude`
+  # (same PID, fine), but `claude` itself forks real children of its own
+  # (npx/playwright-mcp/chrome) that timeout never touches. If those survive
+  # past the 600s cutoff, they keep this command's stdout pipe open, and
+  # `$(...)` blocks forever waiting for EOF that never comes -- confirmed
+  # live: a run hung for 45+ minutes past its 600s budget with the script
+  # process sitting in `anon_pipe_read`, looking dead but never actually
+  # exiting or erroring.
+  #
+  # Fix: run it in its own process group (setsid) so the WHOLE tree can be
+  # killed together, redirect to a file instead of capturing via a pipe (a
+  # file doesn't have the same "wait for EOF" blocking behavior), and sweep
+  # the group after `wait` returns regardless of how it exited.
+  OUT_FILE="$(mktemp /tmp/career-ops-result-XXXX.json)"
+  setsid env CLAUDE_HEADLESS_MODEL=agent-model timeout -k 15 600 deploy/claude-headless.sh \
     "Company: $name. Careers page: $url. Use Playwright to visit that URL. Find open roles matching portals.yml's title_filter.positive keywords (Full Stack, Backend, Software Engineer, etc.), excluding title_filter.negative matches, in a location passing portals.yml's location_filter (Israel / Tel Aviv / Ramat Gan / Herzliya / Petah Tikva / remote). Also check whether the page's job listings are served via Comeet (look for network requests or an iframe/script src pointing at www.comeet.co/careers-api/2.0/company/.../positions -- often visible by viewing the page source or the embedded widget's src attribute). Output ONLY raw JSON, nothing else -- no commentary, no markdown fences: {\"jobs\":[{\"url\":\"...\",\"title\":\"...\",\"location\":\"...\"}],\"comeet_api_url\":\"...\"}. Omit comeet_api_url entirely if you don't find one. If no jobs match, still output the object with an empty jobs array." \
-    2>/dev/null)" || result=""
+    > "$OUT_FILE" 2>/dev/null &
+  child_pid=$!
+  wait "$child_pid" || true
+  pkill -9 -g "$child_pid" 2>/dev/null || true
+  result="$(cat "$OUT_FILE" 2>/dev/null)" || result=""
+  rm -f "$OUT_FILE"
   cleanup_browser
   if [ -z "$result" ]; then
     echo "$LOG_PREFIX   -> failed/timed out for $name"
