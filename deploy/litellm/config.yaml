@@ -5,9 +5,13 @@
 # NVIDIA_API_KEY is read from the environment (set in .env on the host, never
 # committed). See deploy/litellm/README.md for how to point Claude Code at
 # this proxy once it's running.
+#
+# model_name below is each provider's own real model id (not a made-up
+# alias) -- what you set ANTHROPIC_MODEL/CLAUDE_HEADLESS_MODEL to is exactly
+# what that provider calls the model.
 
 model_list:
-  - model_name: nemotron-lightning
+  - model_name: nvidia/nemotron-3.5-lightning-30b-a3b
     litellm_params:
       model: nvidia_nim/nvidia/nemotron-3.5-lightning-30b-a3b
       api_key: os.environ/NVIDIA_API_KEY
@@ -17,12 +21,12 @@ model_list:
   # Level-1 Playwright job-extraction loop in discover-companies.sh) --
   # 561B params, 1M context, NVIDIA's own listing calls out "agentic
   # reasoning, coding, planning, tool calling" specifically, unlike
-  # nemotron-lightning which is tuned for speed/cost on shorter, narrower
-  # calls. Verified live on the Free Endpoint tier, no separate access
-  # request needed (unlike moonshotai/kimi-k2.6, which is listed by NIM's
-  # own API but has no public onboarding path -- 404s "not found for
-  # account" even with a valid key).
-  - model_name: agent-model
+  # nemotron-3.5-lightning-30b-a3b which is tuned for speed/cost on
+  # shorter, narrower calls. Verified live on the Free Endpoint tier, no
+  # separate access request needed (unlike moonshotai/kimi-k2.6, which is
+  # listed by NIM's own API but has no public onboarding path -- 404s "not
+  # found for account" even with a valid key).
+  - model_name: nvidia/nemotron-3-ultra-550b-a55b
     litellm_params:
       model: nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b
       api_key: os.environ/NVIDIA_API_KEY
@@ -40,7 +44,7 @@ model_list:
   # since a dead model just fails fast and falls through the chain below,
   # but don't expect it to actually serve traffic; check
   # https://github.com/github/roadmap for its status before relying on it.
-  - model_name: gh-gpt4o
+  - model_name: gpt-4o
     litellm_params:
       model: github/gpt-4o
       api_key: os.environ/GITHUB_API_KEY
@@ -49,8 +53,8 @@ model_list:
   # against GET https://api.groq.com/openai/v1/models on 2026-08-22 --
   # llama-3.3-70b-versatile (the previous pick) has since been removed from
   # Groq's catalog; gpt-oss-120b is Groq's current largest general/
-  # tool-calling model.
-  - model_name: groq-model
+  # tool-calling model, listed under this exact id in Groq's own catalog.
+  - model_name: openai/gpt-oss-120b
     litellm_params:
       model: groq/openai/gpt-oss-120b
       api_key: os.environ/GROQ_API_KEY
@@ -59,11 +63,13 @@ model_list:
   # live against GET https://openrouter.ai/api/v1/models (prompt/completion
   # pricing == "0") on 2026-08-22 -- the previous pick
   # (meta-llama/llama-3.3-70b-instruct:free) has since gone paid-only.
-  # Picked the OpenRouter-hosted twin of this file's own agent-model
-  # (same weights, NVIDIA's Nemotron-3-Ultra) so quality doesn't regress
-  # on fallback, just the provider/key.
+  # Picked the OpenRouter-hosted twin of nvidia/nemotron-3-ultra-550b-a55b
+  # above (same weights) so quality doesn't regress on fallback, just the
+  # provider/key. model_name carries the :free suffix because that's part
+  # of OpenRouter's own catalog id -- drop it and you're naming a paid
+  # model that costs money per call.
   # OPENROUTER_API_KEY is shared with openrouter-runner.mjs (see .env.example).
-  - model_name: openrouter-model
+  - model_name: nvidia/nemotron-3-ultra-550b-a55b:free
     litellm_params:
       model: openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
       api_key: os.environ/OPENROUTER_API_KEY
@@ -76,12 +82,12 @@ model_list:
   # Verified live against GET https://openrouter.ai/api/v1/models
   # (prompt/completion pricing == "0") on 2026-08-22.
   #
-  # NOTE: this shares OPENROUTER_API_KEY/quota with openrouter-model above,
-  # so it is not an independent fallback from that one -- an OpenRouter-side
-  # rate limit takes both down together. It's still a useful distinct
-  # fallback from the NVIDIA/GitHub/Groq models, just not from
-  # openrouter-model specifically.
-  - model_name: zai-model
+  # NOTE: this shares OPENROUTER_API_KEY/quota with the OpenRouter entry
+  # above, so it is not an independent fallback from that one -- an
+  # OpenRouter-side rate limit takes both down together. It's still a
+  # useful distinct fallback from the NVIDIA/GitHub/Groq models, just not
+  # from the other OpenRouter-routed one.
+  - model_name: z-ai/glm-5.2:free
     litellm_params:
       model: openrouter/z-ai/glm-5.2:free
       api_key: os.environ/OPENROUTER_API_KEY
@@ -92,14 +98,16 @@ litellm_settings:
   # scored on this priority order (NVIDIA models first -- cheapest/fastest
   # for this repo's workloads -- then each other provider/key, so a
   # rate limit on one provider doesn't take down every model at once):
-  # agent-model -> nemotron-lightning -> gh-gpt4o -> groq-model -> openrouter-model -> zai-model
+  # nvidia/nemotron-3-ultra-550b-a55b -> nvidia/nemotron-3.5-lightning-30b-a3b
+  #   -> gpt-4o -> openai/gpt-oss-120b -> nvidia/nemotron-3-ultra-550b-a55b:free
+  #   -> z-ai/glm-5.2:free
   fallbacks:
-    - agent-model: ["nemotron-lightning", "gh-gpt4o", "groq-model", "openrouter-model", "zai-model"]
-    - nemotron-lightning: ["agent-model", "gh-gpt4o", "groq-model", "openrouter-model", "zai-model"]
-    - gh-gpt4o: ["groq-model", "openrouter-model", "zai-model", "agent-model"]
-    - groq-model: ["gh-gpt4o", "openrouter-model", "zai-model", "agent-model"]
-    - openrouter-model: ["gh-gpt4o", "groq-model", "zai-model", "agent-model"]
-    - zai-model: ["gh-gpt4o", "groq-model", "openrouter-model", "agent-model"]
+    - nvidia/nemotron-3-ultra-550b-a55b: ["nvidia/nemotron-3.5-lightning-30b-a3b", "gpt-4o", "openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "z-ai/glm-5.2:free"]
+    - nvidia/nemotron-3.5-lightning-30b-a3b: ["nvidia/nemotron-3-ultra-550b-a55b", "gpt-4o", "openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "z-ai/glm-5.2:free"]
+    - gpt-4o: ["openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "z-ai/glm-5.2:free", "nvidia/nemotron-3-ultra-550b-a55b"]
+    - openai/gpt-oss-120b: ["gpt-4o", "nvidia/nemotron-3-ultra-550b-a55b:free", "z-ai/glm-5.2:free", "nvidia/nemotron-3-ultra-550b-a55b"]
+    - nvidia/nemotron-3-ultra-550b-a55b:free: ["gpt-4o", "openai/gpt-oss-120b", "z-ai/glm-5.2:free", "nvidia/nemotron-3-ultra-550b-a55b"]
+    - z-ai/glm-5.2:free: ["gpt-4o", "openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "nvidia/nemotron-3-ultra-550b-a55b"]
   num_retries: 2
 
 general_settings:

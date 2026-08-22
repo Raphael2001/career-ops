@@ -40,7 +40,7 @@ services:
       # the way of switching to a real subscription later.
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-${LITELLM_MASTER_KEY:-}}
       - ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL:-http://litellm:4000}
-      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-agent-model}
+      - ANTHROPIC_MODEL=${ANTHROPIC_MODEL:-nvidia/nemotron-3-ultra-550b-a55b}
     # Chromium needs a larger /dev/shm than the default 64M.
     shm_size: "1gb"
     # Dashboard TUI is interactive; expose nothing by default but allow `-it`.

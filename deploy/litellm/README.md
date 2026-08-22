@@ -39,7 +39,7 @@ set these three env vars before running `claude`:
 ```bash
 export ANTHROPIC_BASE_URL=http://litellm:4000   # service name, not localhost
 export ANTHROPIC_API_KEY="$LITELLM_MASTER_KEY"
-export ANTHROPIC_MODEL=nemotron-lightning
+export ANTHROPIC_MODEL=nvidia/nemotron-3.5-lightning-30b-a3b
 claude -p "your headless prompt here"
 ```
 
@@ -51,12 +51,15 @@ export ANTHROPIC_BASE_URL=http://localhost:4001
 
 ## Rate-limit fallback (GitHub Models, Groq, OpenRouter, Z.ai)
 
-`agent-model` and `nemotron-lightning` share one `NVIDIA_API_KEY`, so an
-NVIDIA-side rate limit hits both at once. `config.yaml` adds four more
-models (`gh-gpt4o`, `groq-model`, `openrouter-model`, `zai-model`) and a
-`fallbacks` chain in `litellm_settings` -- a 429 on any model retries the
-others in priority order (NVIDIA pair first, then each other provider)
-until one succeeds.
+The two NVIDIA models above share one `NVIDIA_API_KEY`, so an NVIDIA-side
+rate limit hits both at once. `config.yaml` adds four more models
+(`gpt-4o`, `openai/gpt-oss-120b`, `nvidia/nemotron-3-ultra-550b-a55b:free`,
+`z-ai/glm-5.2:free`) and a `fallbacks` chain in `litellm_settings` -- a 429
+on any model retries the others in priority order (NVIDIA pair first, then
+each other provider) until one succeeds. Every `model_name` in
+`config.yaml` is the provider's own real model id, not an invented alias --
+what you pass as `ANTHROPIC_MODEL`/`CLAUDE_HEADLESS_MODEL` is exactly what
+that provider calls the model.
 
 1. **GitHub Models:** fine-grained PAT at
    <https://github.com/settings/personal-access-tokens> -- permission
@@ -70,8 +73,8 @@ until one succeeds.
    `GROQ_API_KEY=gsk_...` to `.env`.
 3. **OpenRouter:** free key at <https://openrouter.ai> -> Sign Up -> Keys.
    Add `OPENROUTER_API_KEY=sk-or-v1-...` to `.env` (shared with
-   `openrouter-runner.mjs`, and also backs `zai-model` below -- one key
-   covers all three).
+   `openrouter-runner.mjs`, and also backs `z-ai/glm-5.2:free` below -- one
+   key covers all three).
 4. For the deploy workflow (`.github/workflows/deploy.yml`), add repo
    secrets named **`GH_MODELS_API_KEY`**, **`GROQ_MODELS_API_KEY`**, and
    **`OPENROUTER_API_KEY`** (GitHub Actions rejects repo secrets with a
@@ -82,13 +85,14 @@ until one succeeds.
    recreate for new env vars, not just a restart -- `restart` reuses the
    env the container already has).
 
-`zai-model` (Z.ai's GLM) needs no separate key or setup step -- it's routed
-through OpenRouter's free tier (`openrouter/z-ai/glm-5.2:free`), not Z.ai's
-own direct API, which has no free tier for a standalone account (every
-model there 429s "Insufficient balance" without a paid top-up). This does
-mean `zai-model` shares `OPENROUTER_API_KEY`/quota with `openrouter-model`
--- not an independent fallback from that one specifically, just from the
-NVIDIA/GitHub/Groq models.
+`z-ai/glm-5.2:free` (Z.ai's GLM) needs no separate key or setup step --
+it's routed through OpenRouter's free tier (`litellm_params.model:
+openrouter/z-ai/glm-5.2:free`), not Z.ai's own direct API, which has no
+free tier for a standalone account (every model there 429s "Insufficient
+balance" without a paid top-up). This does mean it shares
+`OPENROUTER_API_KEY`/quota with `nvidia/nemotron-3-ultra-550b-a55b:free`
+above -- not an independent fallback from that one specifically, just from
+the NVIDIA/GitHub/Groq models.
 
 Any of the three keys can be left unset -- `os.environ/VAR` just resolves
 empty and that model 401s if actually dispatched, which only happens if
@@ -102,14 +106,13 @@ trusting a fallback model id, check it against that provider's live
 
 ## Notes
 
-- `deploy/litellm/config.yaml` maps the alias `nemotron-lightning` ->
-  `nvidia_nim/nvidia/nemotron-3.5-lightning-30b-a3b`. Add more `model_list`
-  entries there for other NIM models (DeepSeek V3.2, Qwen3 Coder, Kimi K2,
-  etc.) -- same `api_base`, same `NVIDIA_API_KEY`.
-- Nemotron-Lightning is a fast, cheap MoE (3B active params) -- good for the
-  structured-extraction work this repo's automation actually does (CV
-  parsing, company-name filtering, JD summarization). It is not a substitute
-  for Claude on genuinely hard agentic/coding tasks; use your real
-  subscription for those.
+- Add more `model_list` entries in `deploy/litellm/config.yaml` for other
+  NIM models (DeepSeek V3.2, Qwen3 Coder, Kimi K2, etc.) -- same
+  `api_base`, same `NVIDIA_API_KEY`.
+- `nvidia/nemotron-3.5-lightning-30b-a3b` is a fast, cheap MoE (3B active
+  params) -- good for the structured-extraction work this repo's automation
+  actually does (CV parsing, company-name filtering, JD summarization). It
+  is not a substitute for Claude on genuinely hard agentic/coding tasks;
+  use your real subscription for those.
 - `LITELLM_MASTER_KEY` is not an NVIDIA or Anthropic secret -- it's a bearer
   token litellm itself requires from callers. Any random string works.

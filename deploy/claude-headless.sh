@@ -4,8 +4,9 @@
 # already defaults every `claude` call to LiteLLM (see docker-compose.yml's
 # career-ops service) -- what this wrapper actually adds is
 # CLAUDE_HEADLESS_MODEL, letting a caller pick a different model per-call
-# (e.g. agent-model for multi-step tool-use vs. nemotron-lightning for a
-# quick single-shot call) without touching the container-wide default.
+# (e.g. nvidia/nemotron-3-ultra-550b-a55b for multi-step tool-use vs.
+# nvidia/nemotron-3.5-lightning-30b-a3b for a quick single-shot call)
+# without touching the container-wide default.
 #
 # Usage: deploy/claude-headless.sh "<prompt>" [extra claude flags...]
 set -euo pipefail
@@ -21,10 +22,11 @@ shift
 
 export ANTHROPIC_BASE_URL="http://litellm:4000"
 export ANTHROPIC_API_KEY="$LITELLM_MASTER_KEY"
-# Override with e.g. `CLAUDE_HEADLESS_MODEL=agent-model deploy/claude-headless.sh ...`
-# for genuinely agentic, multi-step tool-use tasks -- see deploy/litellm/config.yaml
-# for what's available and why you'd pick one over the other.
-export ANTHROPIC_MODEL="${CLAUDE_HEADLESS_MODEL:-nemotron-lightning}"
+# Override with e.g. `CLAUDE_HEADLESS_MODEL=nvidia/nemotron-3-ultra-550b-a55b
+# deploy/claude-headless.sh ...` for genuinely agentic, multi-step tool-use
+# tasks -- see deploy/litellm/config.yaml for what's available and why
+# you'd pick one over the other.
+export ANTHROPIC_MODEL="${CLAUDE_HEADLESS_MODEL:-nvidia/nemotron-3.5-lightning-30b-a3b}"
 
 # --print: non-interactive, skips the workspace-trust dialog for --mcp-config.
 # --dangerously-skip-permissions refuses to run as root, and this container

@@ -112,8 +112,9 @@ while IFS= read -r line; do
   # format and Edit it consistently pushed the task past what it could
   # finish in any reasonable timeout.
   #
-  # agent-model, not nemotron-lightning: this step needs genuine multi-step
-  # tool orchestration (navigate, find listings, filter, extract).
+  # nvidia/nemotron-3-ultra-550b-a55b, not the lightning model: this step
+  # needs genuine multi-step tool orchestration (navigate, find listings,
+  # filter, extract).
   #
   # 600s, not something tighter: verified working end-to-end (real jobs,
   # correctly formatted JSON) at 4m19s -- the variable isn't task complexity,
@@ -121,7 +122,7 @@ while IFS= read -r line; do
   # overloaded" mid-stream, which litellm retries through but which eats
   # unpredictable extra time. 600s leaves real headroom above the ~260s a
   # clean run takes.
-  result="$(timeout 600 docker compose exec -T -e CLAUDE_HEADLESS_MODEL=agent-model "$SERVICE" deploy/claude-headless.sh \
+  result="$(timeout 600 docker compose exec -T -e CLAUDE_HEADLESS_MODEL=nvidia/nemotron-3-ultra-550b-a55b "$SERVICE" deploy/claude-headless.sh \
     "Company: $name. Careers page: $url. Use Playwright to visit that URL. Find open roles matching portals.yml's title_filter.positive keywords (Full Stack, Backend, Software Engineer, etc.), excluding title_filter.negative matches, in a location passing portals.yml's location_filter (Israel / Tel Aviv / Ramat Gan / Herzliya / Petah Tikva / remote). Also check whether the page's job listings are served via Comeet (look for network requests or an iframe/script src pointing at www.comeet.co/careers-api/2.0/company/.../positions -- often visible by viewing the page source or the embedded widget's src attribute). Output ONLY raw JSON, nothing else -- no commentary, no markdown fences: {\"jobs\":[{\"url\":\"...\",\"title\":\"...\",\"location\":\"...\"}],\"comeet_api_url\":\"...\"}. Omit comeet_api_url entirely if you don't find one. If no jobs match, still output the object with an empty jobs array." \
     2>/dev/null < /dev/null)" || result=""
   cleanup_browser
