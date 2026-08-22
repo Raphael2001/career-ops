@@ -72,7 +72,7 @@ order (NVIDIA pair first, then each other provider) until one succeeds.
    Add `OPENROUTER_API_KEY=sk-or-v1-...` to `.env` (shared with
    `openrouter-runner.mjs` -- one key covers both).
 4. **Z.ai (GLM):** free key at <https://z.ai> -> API keys. Add
-   `ZAI_API_KEY=...` to `.env`. Model id `glm-4.6` verified live against
+   `ZAI_API_KEY=...` to `.env`. Model id `glm-5.2` verified live against
    `GET https://api.z.ai/api/paas/v4/models` on 2026-08-22.
 5. For the deploy workflow (`.github/workflows/deploy.yml`), add repo
    secrets named **`GH_MODELS_API_KEY`**, **`GROQ_MODELS_API_KEY`**,

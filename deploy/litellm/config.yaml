@@ -74,12 +74,12 @@ model_list:
   # Verified live against GET https://api.z.ai/api/paas/v4/models (needs a
   # key -- 401s without one) on 2026-08-22. Full catalog at that point:
   # glm-4.5, glm-4.5-air, glm-4.6, glm-4.7, glm-5, glm-5-turbo, glm-5.1,
-  # glm-5.2, glm-5.3 -- picked glm-4.6 as the general-purpose pick roughly
-  # matching the other fallbacks' caliber (gpt-4o, gpt-oss-120b,
-  # nemotron-3-ultra), not the bleeding-edge glm-5.x line.
+  # glm-5.2, glm-5.3 -- picked glm-5.2, also the model OpenRouter lists as
+  # its free z-ai/glm-5.2:free tier, so likely Z.ai's own flagship
+  # free/stable pick rather than a bleeding-edge point release.
   - model_name: zai-model
     litellm_params:
-      model: openai/glm-4.6
+      model: openai/glm-5.2
       api_key: os.environ/ZAI_API_KEY
       api_base: https://api.z.ai/api/paas/v4/
 
