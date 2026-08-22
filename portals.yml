@@ -672,8 +672,7 @@ tracked_companies:
     enabled: true
   - name: Global-e
     careers_url: https://www.global-e.com/careers/
-    scan_method: websearch
-    scan_query: site:www.global-e.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/62.002/positions?token=262988131015727264C41572E4C10AE10AE
     enabled: true
   - name: Justt
     careers_url: https://www.justt.ai/careers
