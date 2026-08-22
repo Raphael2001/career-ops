@@ -743,8 +743,7 @@ tracked_companies:
     enabled: true
   - name: Nano-X Imaging
     careers_url: https://www.nanox.vision/careers
-    scan_method: websearch
-    scan_query: site:www.nanox.vision "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/43.00F/positions?token=34F108B69E34F108B13DA17299ED13DAD3C
     enabled: true
   - name: Next Insurance
     careers_url: https://www.nextinsurance.com/careers/
