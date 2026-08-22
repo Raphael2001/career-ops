@@ -708,8 +708,7 @@ tracked_companies:
     enabled: true
   - name: Trullion
     careers_url: https://trullion.com/careers
-    scan_method: websearch
-    scan_query: site:trullion.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/07.000/positions?token=7002A00E003F002A007002A0002A002A00
     enabled: true
   - name: Unit
     careers_url: https://jobs.ashbyhq.com/unit
