@@ -53,10 +53,10 @@ export ANTHROPIC_BASE_URL=http://localhost:4001
 
 `agent-model` and `nemotron-lightning` share one `NVIDIA_API_KEY`, so an
 NVIDIA-side rate limit hits both at once. `config.yaml` adds four more
-models on independent providers/keys (`gh-gpt4o`, `groq-model`,
-`openrouter-model`, `zai-model`) and a `fallbacks` chain in
-`litellm_settings` -- a 429 on any model retries the others in priority
-order (NVIDIA pair first, then each other provider) until one succeeds.
+models (`gh-gpt4o`, `groq-model`, `openrouter-model`, `zai-model`) and a
+`fallbacks` chain in `litellm_settings` -- a 429 on any model retries the
+others in priority order (NVIDIA pair first, then each other provider)
+until one succeeds.
 
 1. **GitHub Models:** fine-grained PAT at
    <https://github.com/settings/personal-access-tokens> -- permission
@@ -70,22 +70,27 @@ order (NVIDIA pair first, then each other provider) until one succeeds.
    `GROQ_API_KEY=gsk_...` to `.env`.
 3. **OpenRouter:** free key at <https://openrouter.ai> -> Sign Up -> Keys.
    Add `OPENROUTER_API_KEY=sk-or-v1-...` to `.env` (shared with
-   `openrouter-runner.mjs` -- one key covers both).
-4. **Z.ai (GLM):** free key at <https://z.ai> -> API keys. Add
-   `ZAI_API_KEY=...` to `.env`. Model id `glm-5.2` verified live against
-   `GET https://api.z.ai/api/paas/v4/models` on 2026-08-22.
-5. For the deploy workflow (`.github/workflows/deploy.yml`), add repo
-   secrets named **`GH_MODELS_API_KEY`**, **`GROQ_MODELS_API_KEY`**,
-   **`OPENROUTER_API_KEY`**, and **`ZAI_API_KEY`** (GitHub Actions rejects
-   repo secrets with a `GITHUB_` prefix, reserved for its own token --
-   that's why the first is renamed; the others aren't affected). The
-   workflow maps them onto the matching `.env` var names on the host for
-   you.
-6. `docker compose up -d litellm` to pick it all up (needs a container
+   `openrouter-runner.mjs`, and also backs `zai-model` below -- one key
+   covers all three).
+4. For the deploy workflow (`.github/workflows/deploy.yml`), add repo
+   secrets named **`GH_MODELS_API_KEY`**, **`GROQ_MODELS_API_KEY`**, and
+   **`OPENROUTER_API_KEY`** (GitHub Actions rejects repo secrets with a
+   `GITHUB_` prefix, reserved for its own token -- that's why the first is
+   renamed; the others aren't affected). The workflow maps them onto the
+   matching `.env` var names on the host for you.
+5. `docker compose up -d litellm` to pick it all up (needs a container
    recreate for new env vars, not just a restart -- `restart` reuses the
    env the container already has).
 
-Any of the five keys can be left unset -- `os.environ/VAR` just resolves
+`zai-model` (Z.ai's GLM) needs no separate key or setup step -- it's routed
+through OpenRouter's free tier (`openrouter/z-ai/glm-5.2:free`), not Z.ai's
+own direct API, which has no free tier for a standalone account (every
+model there 429s "Insufficient balance" without a paid top-up). This does
+mean `zai-model` shares `OPENROUTER_API_KEY`/quota with `openrouter-model`
+-- not an independent fallback from that one specifically, just from the
+NVIDIA/GitHub/Groq models.
+
+Any of the three keys can be left unset -- `os.environ/VAR` just resolves
 empty and that model 401s if actually dispatched, which only happens if
 every model ahead of it in the fallback chain is also failing.
 

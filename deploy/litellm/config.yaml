@@ -68,20 +68,23 @@ model_list:
       model: openrouter/nvidia/nemotron-3-ultra-550b-a55b:free
       api_key: os.environ/OPENROUTER_API_KEY
 
-  # Z.ai (GLM) -- OpenAI-compatible endpoint, same pattern openai-eval.mjs
-  # already uses for Zhipu GLM. No native litellm provider prefix for it,
-  # so route through the generic openai/ provider with an explicit api_base.
-  # Verified live against GET https://api.z.ai/api/paas/v4/models (needs a
-  # key -- 401s without one) on 2026-08-22. Full catalog at that point:
-  # glm-4.5, glm-4.5-air, glm-4.6, glm-4.7, glm-5, glm-5-turbo, glm-5.1,
-  # glm-5.2, glm-5.3 -- picked glm-5.2, also the model OpenRouter lists as
-  # its free z-ai/glm-5.2:free tier, so likely Z.ai's own flagship
-  # free/stable pick rather than a bleeding-edge point release.
+  # Z.ai (GLM) -- routed through OpenRouter's free tier, not Z.ai's own
+  # api.z.ai directly. Every model on the direct API 429s with "Insufficient
+  # balance or no resource package" for a fresh account regardless of model
+  # id -- there's no free tier there, only pay-as-you-go. OpenRouter's
+  # z-ai/glm-5.2:free is an actual $0 route to the same model family.
+  # Verified live against GET https://openrouter.ai/api/v1/models
+  # (prompt/completion pricing == "0") on 2026-08-22.
+  #
+  # NOTE: this shares OPENROUTER_API_KEY/quota with openrouter-model above,
+  # so it is not an independent fallback from that one -- an OpenRouter-side
+  # rate limit takes both down together. It's still a useful distinct
+  # fallback from the NVIDIA/GitHub/Groq models, just not from
+  # openrouter-model specifically.
   - model_name: zai-model
     litellm_params:
-      model: openai/glm-5.2
-      api_key: os.environ/ZAI_API_KEY
-      api_base: https://api.z.ai/api/paas/v4/
+      model: openrouter/z-ai/glm-5.2:free
+      api_key: os.environ/OPENROUTER_API_KEY
 
 litellm_settings:
   drop_params: true

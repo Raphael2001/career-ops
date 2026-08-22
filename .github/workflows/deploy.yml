@@ -15,7 +15,6 @@ jobs:
           GITHUB_API_KEY: ${{ secrets.GH_MODELS_API_KEY }}
           GROQ_API_KEY: ${{ secrets.GROQ_MODELS_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
           LITELLM_MASTER_KEY: ${{ secrets.LITELLM_MASTER_KEY }}
         run: |
           cd ~/career-ops
@@ -38,7 +37,7 @@ jobs:
           # other lines untouched. No-op for a key that isn't set as a
           # repo secret, so .env keeps whatever was there before.
           touch .env
-          for key in NVIDIA_API_KEY GITHUB_API_KEY GROQ_API_KEY OPENROUTER_API_KEY ZAI_API_KEY LITELLM_MASTER_KEY; do
+          for key in NVIDIA_API_KEY GITHUB_API_KEY GROQ_API_KEY OPENROUTER_API_KEY LITELLM_MASTER_KEY; do
             value="${!key}"
             [ -z "$value" ] && continue
             grep -v "^${key}=" .env > .env.tmp || true
