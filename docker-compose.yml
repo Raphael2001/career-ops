@@ -47,6 +47,12 @@ services:
     tty: true
     stdin_open: true
     restart: unless-stopped
+    # Caps a runaway container instead of letting it exhaust the host and
+    # take everything else down with it -- this host has genuinely done
+    # that (mp3-summarizer's llamacpp container hit 6GB+ and OOM-killed
+    # unrelated processes, including this repo's own GitHub Actions
+    # runner, more than once). Playwright/Chrome is the heavy part here.
+    mem_limit: "3g"
 
   # Fronts NVIDIA NIM's free-tier models (Nemotron, nemotron-3-ultra) behind
   # an Anthropic-compatible /v1/messages endpoint. This is the default
@@ -78,6 +84,12 @@ services:
       litellm-db:
         condition: service_healthy
     restart: unless-stopped
+    # litellm's embedded Prisma query-engine has been observed ballooning
+    # to 9.4-9.7GB during mid-stream-fallback handling and OOM-killing
+    # unrelated host processes (including this repo's own Actions runner)
+    # -- cap it well above normal operation (~1-4GB observed) but below
+    # that runaway pattern.
+    mem_limit: "6g"
 
   # Internal-only -- no host port mapping, nothing outside the Docker network
   # can reach it. Backs the litellm admin UI (/ui) and its key/spend tables.
@@ -96,6 +108,7 @@ services:
       timeout: 5s
       retries: 10
     restart: unless-stopped
+    mem_limit: "512m"
 
   # Read-only infra dashboard -- LiteLLM model health/usage, discovery-scan
   # status, container status. See monitor/README.md. Reaches litellm over
@@ -127,6 +140,7 @@ services:
     depends_on:
       - litellm
     restart: unless-stopped
+    mem_limit: "512m"
 
 volumes:
   career-ops-node-modules:
