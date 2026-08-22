@@ -1362,12 +1362,12 @@ tracked_companies:
   # -- API-verified: Ashby --
 
   - name: Wiz
-    careers_url: https://jobs.ashbyhq.com/wiz
+    careers_url: https://boards.greenhouse.io/wizinc
     notes: "Tel Aviv/NY. Cloud security platform, one of the fastest-growing security unicorns."
     enabled: true
 
   - name: Snyk
-    careers_url: https://jobs.ashbyhq.com/snyk
+    careers_url: https://snyk.wd103.myworkdayjobs.com/External
     notes: "London/Tel Aviv. Developer-first security (SAST/SCA)."
     enabled: true
 

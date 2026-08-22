@@ -558,14 +558,23 @@ export async function verifyCompanies(
       parseAtsSlug(company.api) || parseAtsSlug(company.careers_url);
     if (match) {
       const probe = await probeSlug(match.ats, match.slug, { fetchJson, eu: match.eu });
-      if (probe.status === 'live' || probe.status === 'empty') {
+      if (probe.status === 'live') {
         results.push({ name, ...probe });
         continue;
       }
-      // Wrong slug or ATS migration — cross-probe only for slug/unknown failures.
-      if (probe.errorKind === 'slug_gone' || probe.errorKind === 'unknown') {
+      // An 'empty' board is not necessarily the right one — the configured ATS
+      // may be a stale/wrong slug (#3021: Wiz on ashby, Snyk on ashby) while the
+      // company's real postings live on a different ATS. Cross-probe here too,
+      // but only surface a suggestion when it finds something strictly better
+      // (a live board) — a genuinely-empty-right-now correct slug should not
+      // get flagged just because discoverAlternates ran.
+      if (
+        probe.status === 'empty' ||
+        probe.errorKind === 'slug_gone' ||
+        probe.errorKind === 'unknown'
+      ) {
         const suggested = await discoverAlternates(name, { fetchJson, fetchText });
-        if (suggested) {
+        if (suggested && (probe.status !== 'empty' || suggested.status === 'live')) {
           results.push({ name, ...probe, suggested });
           continue;
         }
