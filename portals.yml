@@ -934,8 +934,7 @@ tracked_companies:
     enabled: true
   - name: Swimm
     careers_url: https://swimm.io/careers
-    scan_method: websearch
-    scan_query: site:swimm.io "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/56.007/positions?token=657260A657195C1FB332B8390F195C6571305
     enabled: true
   - name: Tabnine
     careers_url: https://www.tabnine.com/careers
