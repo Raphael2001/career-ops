@@ -6,10 +6,18 @@ import { resolveCli } from "@/lib/clis";
 import { careerOpsRoot, readMemory } from "@/lib/career-ops";
 import { assembleDedupContext } from "@/lib/core/discover";
 
-// AI search orchestrates modes/discover.md by running the USER'S configured CLI
-// headless (CLI-agnostic, like the assistant). Web hunting is slow → generous
-// budget. The agent is a PROPOSER: Write/Edit/Bash are disabled so it structurally
-// cannot persist; the only writes happen when the user later ADDs a candidate.
+// AI search orchestrates modes/explore-ai.md by running the USER'S configured
+// CLI headless (CLI-agnostic, like the assistant). Web hunting is slow →
+// generous budget. The agent is a PROPOSER: Write/Edit/Bash are disabled so it
+// structurally cannot persist; the only writes happen when the user later ADDs
+// a candidate.
+//
+// NOT modes/discover.md — that's a different, zero-token company→ATS-board
+// resolution tool with no concept of a role query or a web search. Pointing
+// this route at it left the agent's own prompt half-framed around the wrong
+// task (observed reasoning: "I'll discover ATS boards for Israeli companies"
+// instead of searching for postings) — explore-ai.md is this route's own
+// canonical task definition.
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 600;
@@ -116,19 +124,20 @@ function supportsSafeCodexExec(binPath: string): Promise<boolean> {
   return probe;
 }
 
+// Transport mechanics only — what to do (the query semantics, the location
+// hard-filter, the generous-but-honest judgment calls) lives in
+// modes/explore-ai.md, the single source of truth read below. This is just
+// the wire format the web's stream parser expects.
 const OUTPUT_CONTRACT = `
 
 --- OUTPUT CONTRACT (the career-ops WEB is parsing your stream) ---
-Follow modes/discover.md exactly. You are running headless for the web:
+You are running headless for the web:
 - You are a PROPOSER — never write a file (Write/Edit/Bash are disabled).
 - Emit each candidate as ONE line, never inside a code fence:
   <<offer:{"url":"…","title":"…","company":"…","location":"…","source":"ai-search","why":"…","postedHint":"…","ats":"…","verification":"unconfirmed"}>>
   Valid JSON, one per line, the moment you're confident — stream them as you go.
 - Between envelopes, narrate briefly (plain text) what you're searching — shown live as your reasoning.
-- Be frugal (~3–6 searches, stop at a strong set). EVERY candidate is UNVERIFIED.
-- Be a GENEROUS FINDER, not a judge: when a constraint (seniority, stage, an unstated detail) can't be confirmed from the shallow signal, INCLUDE + flag the uncertainty in "why" — don't discard. NEVER score or judge fit; the A–F evaluation does that later, with the full JD.
-- LOCATION IS A HARD FILTER, not a soft signal: when the user's query names a specific city/country and does NOT ask for remote, a posting whose stated location is a different country, OR whose title/description says "Remote"/"Anywhere"/a different region, is a CONFIRMED mismatch — DISCARD it, don't include-and-flag. "Generous" above covers genuine ambiguity (location simply not stated anywhere you could find); it never covers a location signal that directly contradicts the query.
-- DEDUP: skip anything already known below; don't re-propose the user's existing companies.
+- EVERY candidate is UNVERIFIED — a live browser check only happens later, when the user evaluates one.
 `;
 
 export async function POST(req: Request) {
@@ -150,7 +159,7 @@ export async function POST(req: Request) {
   // homegrown prompt. Missing (older core) → graceful 400 so the Scan tab stays usable.
   let mode: string;
   try {
-    mode = fs.readFileSync(path.join(careerOpsRoot(), "modes", "discover.md"), "utf8");
+    mode = fs.readFileSync(path.join(careerOpsRoot(), "modes", "explore-ai.md"), "utf8");
   } catch {
     return Response.json({ code: "MODE_MISSING", error: "AI search needs a newer career-ops — update to enable it." }, { status: 400 });
   }

@@ -79,6 +79,7 @@ const SYSTEM_PATHS = [
   'modes/expand.md',
   'modes/scan.md',
   'modes/discover.md',
+  'modes/explore-ai.md',
   'modes/batch.md',
   'modes/apply.md',
   'modes/auto-pipeline.md',
