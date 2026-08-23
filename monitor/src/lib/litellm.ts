@@ -119,19 +119,54 @@ function formatForSpendLogs(d: Date): string {
   return d.toISOString().slice(0, 19).replace("T", " ");
 }
 
-export type SpendLogsResult = { entries: SpendLogEntry[]; total: number };
-
-export async function getSpendLogs(start: Date, end: Date, pageSize = 1000): Promise<SpendLogsResult> {
+async function fetchSpendLogsPage(
+  start: Date,
+  end: Date,
+  page: number,
+  pageSize: number,
+): Promise<{ data: SpendLogEntry[]; total: number }> {
   const params = new URLSearchParams({
-    page: "1",
+    page: String(page),
     page_size: String(pageSize),
     sort_by: "startTime",
     sort_order: "desc",
     start_date: formatForSpendLogs(start),
     end_date: formatForSpendLogs(end),
   });
-  const data = await fetchJson<{ data: SpendLogEntry[]; total: number }>(`/spend/logs/v2?${params}`, 20_000);
-  return { entries: data.data, total: data.total };
+  return fetchJson<{ data: SpendLogEntry[]; total: number }>(`/spend/logs/v2?${params}`, 20_000);
+}
+
+// entries.length < total means the row cap below was hit -- the Usage page
+// shows that as "latest N of total" so a truncated aggregate never passes
+// as a complete one.
+export type SpendLogsResult = { entries: SpendLogEntry[]; total: number };
+
+// v2 caps page_size at 1000 server-side, so a single call only ever covers
+// the most recent 1000 rows regardless of how wide the date range is --
+// fine for "Today", silently wrong for "30 days"/"90 days" (the per-model
+// breakdown would just be whatever happened most recently, not the full
+// range). Page through sequentially (not in parallel -- litellm-db has
+// already shown it can't take concurrent load well, see the /spend/logs
+// deprecation fix above) up to MAX_ROWS as a hard ceiling so a genuinely
+// huge range can't turn one page load into an unbounded number of DB
+// round trips.
+const PAGE_SIZE = 1000;
+const MAX_ROWS = 10_000;
+
+export async function getSpendLogs(start: Date, end: Date): Promise<SpendLogsResult> {
+  const first = await fetchSpendLogsPage(start, end, 1, PAGE_SIZE);
+  const entries = [...first.data];
+  const rowsToFetch = Math.min(first.total, MAX_ROWS);
+
+  let page = 2;
+  while (entries.length < rowsToFetch) {
+    const next = await fetchSpendLogsPage(start, end, page, PAGE_SIZE);
+    if (next.data.length === 0) break;
+    entries.push(...next.data);
+    page += 1;
+  }
+
+  return { entries, total: first.total };
 }
 
 export type DailySpend = { date: string; spend: number };
