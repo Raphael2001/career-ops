@@ -22,15 +22,29 @@ function providerLabel(model: string): string {
   return PROVIDER_LABELS[model] ?? model.split("/")[0];
 }
 
-export default async function ModelsPage() {
-  const [healthResult, spendResult] = await Promise.allSettled([getHealth(), getSpendLogs(200)]);
+export default async function ModelsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ recheck?: string }>;
+}) {
+  const params = await searchParams;
+  const force = params.recheck !== undefined;
 
-  const health = healthResult.status === "fulfilled" ? healthResult.value : null;
+  const [healthResult, spendResult] = await Promise.allSettled([getHealth(force), getSpendLogs(200)]);
+
+  const health = healthResult.status === "fulfilled" ? healthResult.value.report : null;
   const healthError = healthResult.status === "rejected" ? String(healthResult.reason) : null;
   const spend = spendResult.status === "fulfilled" ? spendResult.value : null;
   const spendError = spendResult.status === "rejected" ? String(spendResult.reason) : null;
 
-  const checkedAt = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const checkedAt =
+    healthResult.status === "fulfilled"
+      ? new Date(healthResult.value.checkedAt).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        })
+      : null;
 
   const healthyCount = health?.healthy_endpoints.length ?? 0;
   const unhealthyCount = health?.unhealthy_endpoints.length ?? 0;
@@ -52,9 +66,8 @@ export default async function ModelsPage() {
         <div>
           <h1 className="text-lg font-semibold text-fg">Models</h1>
           <p className="mt-1 text-sm text-muted">
-            Live health -- each row is a real test call litellm just made, not a cached status.
-            No auto-refresh here: unlike the other tabs, refreshing this one dispatches a real
-            call to every model. Use Recheck when you actually want a fresh read.
+            Health is cached for 5 minutes so navigating here doesn&apos;t force a live sweep every
+            time. Hit Recheck to dispatch a real test call to every model right now.
           </p>
         </div>
         <RefreshButton />

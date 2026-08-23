@@ -64,13 +64,31 @@ export type HealthReport = {
 // stacks up multiple real 6-model sweeps against litellm concurrently
 // instead of one. That's a real, observed cause of host memory pressure,
 // not a theoretical one.
-let inFlightHealth: Promise<HealthReport> | null = null;
+let inFlightHealth: Promise<HealthResult> | null = null;
 
-export async function getHealth(): Promise<HealthReport> {
+// Cached alongside the in-flight promise so a plain page load/navigation
+// doesn't itself trigger a fresh 6-model sweep (up to ~150s) -- only an
+// explicit `force` (the "Recheck now" button) does. TTL is generous on
+// purpose: this is an ops dashboard, not a live status page, and staleness
+// self-heals every 5 minutes even if nobody clicks Recheck.
+export type HealthResult = { report: HealthReport; checkedAt: number };
+
+let cachedHealth: HealthResult | null = null;
+const HEALTH_CACHE_TTL_MS = 5 * 60_000;
+
+export async function getHealth(force = false): Promise<HealthResult> {
+  if (!force && cachedHealth && Date.now() - cachedHealth.checkedAt < HEALTH_CACHE_TTL_MS) {
+    return cachedHealth;
+  }
   if (inFlightHealth) return inFlightHealth;
-  inFlightHealth = fetchJson<HealthReport>("/health", 150_000).finally(() => {
-    inFlightHealth = null;
-  });
+  inFlightHealth = fetchJson<HealthReport>("/health", 150_000)
+    .then((report) => {
+      cachedHealth = { report, checkedAt: Date.now() };
+      return cachedHealth;
+    })
+    .finally(() => {
+      inFlightHealth = null;
+    });
   return inFlightHealth;
 }
 

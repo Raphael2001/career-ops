@@ -19,10 +19,16 @@ RUN corepack enable && yarn build
 
 FROM base AS run
 ENV NODE_ENV=production
-RUN corepack enable
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/.next ./.next
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/next.config.mjs ./next.config.mjs
 EXPOSE 3000
-CMD ["yarn", "start"]
+# Run next directly, not via `yarn start` -- node_modules is already built
+# and baked in above, so there's nothing for a package manager to resolve.
+# `yarn start` went through corepack, which (when it can reach the
+# registry) resolves the real pinned Yarn 4 and refuses to run because this
+# stage never copies yarn.lock/.yarnrc.yml -- it only worked before by
+# accident, when a DNS hiccup made corepack fall back to bundled classic
+# Yarn 1.x, which doesn't care about the Berry lockfile.
+CMD ["node_modules/.bin/next", "start"]
