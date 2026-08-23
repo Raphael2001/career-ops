@@ -52,7 +52,6 @@ title_filter:
     - "React Developer"
     - "Web Developer"
     - "AI Engineer"
-    - "Agent"
   negative:
     - "Junior"
     - "Intern"
