@@ -38,9 +38,22 @@ set these three env vars before running `claude`:
 ```bash
 export ANTHROPIC_BASE_URL=http://litellm:4000   # service name, not localhost
 export ANTHROPIC_API_KEY="$LITELLM_MASTER_KEY"
-export ANTHROPIC_MODEL=nvidia/nemotron-3.5-lightning-30b-a3b
+export ANTHROPIC_MODEL=career-ops/top3   # or a specific model_name to pin one
 claude -p "your headless prompt here"
 ```
+
+## Load-balanced pool (`career-ops/top3`)
+
+`config.yaml` has a `career-ops/top3` alias -- three `model_list` entries
+sharing that one `model_name` (nvidia nemotron, OpenRouter stealth/ox-alpha,
+Cloudflare glm-4.7-flash). LiteLLM's router treats same-name entries as one
+group: `routing_strategy: simple-shuffle` picks one at random per call
+instead of only using #2/#3 as failover for #1, and a mid-call failure
+retries the other two group members before falling through to the wider
+`fallbacks` chain. `deploy/claude-headless.sh` defaults
+`ANTHROPIC_MODEL`/`CLAUDE_HEADLESS_MODEL` to this pool; pass a specific
+`model_name` from `config.yaml` (e.g. `nvidia/nemotron-3-ultra-550b-a55b`)
+to force one model for a single call instead.
 
 From the host (outside Docker), swap the base URL for the mapped port:
 

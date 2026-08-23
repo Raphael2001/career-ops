@@ -21,10 +21,13 @@ shift
 
 export ANTHROPIC_BASE_URL="http://litellm:4000"
 export ANTHROPIC_API_KEY="$LITELLM_MASTER_KEY"
-# Override with e.g. `CLAUDE_HEADLESS_MODEL=openai/gpt-oss-120b
-# deploy/claude-headless.sh ...` to force a specific model for one call --
-# see deploy/litellm/config.yaml for what's available.
-export ANTHROPIC_MODEL="${CLAUDE_HEADLESS_MODEL:-nvidia/nemotron-3-ultra-550b-a55b}"
+# Default is the career-ops/top3 load-balanced pool (nvidia nemotron,
+# OpenRouter stealth/ox-alpha, Cloudflare glm-4.7-flash) -- litellm picks one
+# at random per call. Override with e.g.
+# `CLAUDE_HEADLESS_MODEL=openai/gpt-oss-120b deploy/claude-headless.sh ...`
+# to force a specific model for one call -- see deploy/litellm/config.yaml
+# for what's available.
+export ANTHROPIC_MODEL="${CLAUDE_HEADLESS_MODEL:-career-ops/top3}"
 
 # --print: non-interactive, skips the workspace-trust dialog for --mcp-config.
 # --dangerously-skip-permissions refuses to run as root, and this container

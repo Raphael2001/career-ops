@@ -11,6 +11,33 @@
 # what that provider calls the model.
 
 model_list:
+  # Load-balanced pool -- three entries sharing one model_name. LiteLLM's
+  # router treats same-name entries as one group and spreads requests across
+  # them (routing_strategy below), instead of only using #2/#3 as failover
+  # for #1. Point ANTHROPIC_MODEL/CLAUDE_HEADLESS_MODEL at "career-ops/top3"
+  # to use this instead of a single fixed model. Deliberately just these 3
+  # (not all 6 providers below) -- Groq/Z.ai/Mistral stay fallback-only,
+  # unchanged.
+  #
+  # Tradeoff vs. pinning nvidia/nemotron-3-ultra-550b-a55b alone: Cloudflare's
+  # glm-4.7-flash is a small flash model, not verified for the same
+  # multi-step tool-orchestration workloads (see discover-companies.sh) that
+  # nvidia was picked for -- using this pool for agentic tasks trades some
+  # answer quality/reliability for spread across 3 independent quotas.
+  - model_name: career-ops/top3
+    litellm_params:
+      model: nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b
+      api_key: os.environ/NVIDIA_API_KEY
+      api_base: https://integrate.api.nvidia.com/v1
+  - model_name: career-ops/top3
+    litellm_params:
+      model: openrouter/stealth/ox-alpha
+      api_key: os.environ/OPENROUTER_API_KEY
+  - model_name: career-ops/top3
+    litellm_params:
+      model: cloudflare/@cf/zai-org/glm-4.7-flash
+      api_key: os.environ/CLOUDFLARE_API_TOKEN
+
   # Cloudflare Workers AI -- included in the Workers Free plan with a daily
   # quota. It is used only after the existing free-provider fallbacks fail.
   - model_name: cloudflare/@cf/zai-org/glm-4.7-flash
@@ -127,6 +154,11 @@ litellm_settings:
   # GITHUB_API_KEY / GH_MODELS_API_KEY are unused now; safe to delete if
   # you want to tidy up the repo secret and .env line.
   fallbacks:
+    # career-ops/top3 already spreads across nvidia/stealth/cloudflare via
+    # routing_strategy above and retries the other two group members on a
+    # per-call failure before this chain is even consulted -- this only
+    # fires if all 3 group members failed on the same call.
+    - career-ops/top3: ["openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash", "mistral-small-latest"]
     - cloudflare/@cf/zai-org/glm-4.7-flash: ["nvidia/nemotron-3-ultra-550b-a55b", "stealth/ox-alpha", "openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash", "mistral-small-latest"]
     - nvidia/nemotron-3-ultra-550b-a55b: ["cloudflare/@cf/zai-org/glm-4.7-flash", "stealth/ox-alpha", "openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash", "mistral-small-latest"]
     - openai/gpt-oss-120b: ["cloudflare/@cf/zai-org/glm-4.7-flash", "stealth/ox-alpha", "nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash", "mistral-small-latest", "nvidia/nemotron-3-ultra-550b-a55b"]
@@ -135,6 +167,15 @@ litellm_settings:
     - mistral-small-latest: ["cloudflare/@cf/zai-org/glm-4.7-flash", "stealth/ox-alpha", "openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash", "nvidia/nemotron-3-ultra-550b-a55b"]
     - stealth/ox-alpha: ["nvidia/nemotron-3-ultra-550b-a55b", "cloudflare/@cf/zai-org/glm-4.7-flash", "openai/gpt-oss-120b", "nvidia/nemotron-3-ultra-550b-a55b:free", "glm-4.7-flash", "mistral-small-latest"]
   num_retries: 2
+
+router_settings:
+  # simple-shuffle = weighted random pick across a same-model_name group on
+  # every call (this is litellm's own default -- pinned explicitly here so
+  # it's not silently dependent on that default changing upstream). Applies
+  # to the career-ops/top3 group above; round-robin isn't a distinct
+  # strategy litellm exposes, and random is an even long-run split across 3
+  # providers either way.
+  routing_strategy: simple-shuffle
 
 general_settings:
   master_key: os.environ/LITELLM_MASTER_KEY

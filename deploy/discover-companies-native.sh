@@ -144,7 +144,12 @@ while IFS= read -r line; do
   # file doesn't have the same "wait for EOF" blocking behavior), and sweep
   # the group after `wait` returns regardless of how it exited.
   OUT_FILE="$(mktemp /tmp/career-ops-result-XXXX.json)"
-  setsid env CLAUDE_HEADLESS_MODEL=nvidia/nemotron-3-ultra-550b-a55b timeout -k 15 600 deploy/claude-headless.sh \
+  # career-ops/top3 (see deploy/litellm/config.yaml): load-balanced across
+  # nvidia/nemotron-3-ultra-550b-a55b, OpenRouter stealth/ox-alpha, and
+  # Cloudflare glm-4.7-flash. See discover-companies.sh for the same call's
+  # rationale/caveat -- glm-4.7-flash is unverified on this exact
+  # tool-orchestration workload.
+  setsid env CLAUDE_HEADLESS_MODEL=career-ops/top3 timeout -k 15 600 deploy/claude-headless.sh \
     "Company: $name. Careers page: $url. Use Playwright to visit that URL. Find open roles whose title contains at least one of these keywords: $POSITIVE_KEYWORDS. REJECT any role whose title contains any of these words, even if it also matches a keyword above: $NEGATIVE_KEYWORDS. Only include a role if its location plausibly matches one of: $LOCATION_ALLOW. Do NOT include a role whose location is a different country, or whose title/description says Remote/Anywhere without also naming one of those places. Also check whether the page's job listings are served via Comeet (look for network requests or an iframe/script src pointing at www.comeet.co/careers-api/2.0/company/.../positions -- often visible by viewing the page source or the embedded widget's src attribute). Output ONLY raw JSON, nothing else -- no commentary, no markdown fences: {\"jobs\":[{\"url\":\"...\",\"title\":\"...\",\"location\":\"...\"}],\"comeet_api_url\":\"...\"}. Omit comeet_api_url entirely if you don't find one. If no jobs match, still output the object with an empty jobs array." \
     > "$OUT_FILE" 2>/dev/null &
   child_pid=$!

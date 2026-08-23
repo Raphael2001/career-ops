@@ -95,4 +95,19 @@ jobs:
             echo "No web/image-affecting files changed -- nothing to restart."
           fi
 
+          # deploy/litellm/config.yaml is bind-mounted read-only into the
+          # litellm service (docker-compose.yml) -- litellm reads it once at
+          # process startup, so an on-disk content change alone (no compose
+          # service-definition change) does NOT get picked up by `docker
+          # compose up -d`, and it isn't covered by REBUILD_TRIGGERS or the
+          # web/ restart branch above since litellm is a separate service.
+          # Restart it explicitly whenever the file changes. This is
+          # independent of the career-ops rebuild/restart decision above --
+          # restarting litellm doesn't touch the career-ops container or any
+          # discovery scan running inside it.
+          if [ "$OLD_SHA" != "$NEW_SHA" ] && echo "$CHANGED" | grep -qE '^deploy/litellm/config\.yaml$'; then
+            echo "deploy/litellm/config.yaml changed -- restarting litellm to pick it up."
+            docker compose restart litellm
+          fi
+
           ./cops doctor

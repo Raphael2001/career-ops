@@ -112,17 +112,22 @@ while IFS= read -r line; do
   # format and Edit it consistently pushed the task past what it could
   # finish in any reasonable timeout.
   #
-  # nvidia/nemotron-3-ultra-550b-a55b, not the lightning model: this step
-  # needs genuine multi-step tool orchestration (navigate, find listings,
-  # filter, extract).
+  # career-ops/top3 (see deploy/litellm/config.yaml): load-balanced across
+  # nvidia/nemotron-3-ultra-550b-a55b, OpenRouter stealth/ox-alpha, and
+  # Cloudflare glm-4.7-flash -- this step needs genuine multi-step tool
+  # orchestration (navigate, find listings, filter, extract), which is what
+  # nvidia was originally picked for alone; glm-4.7-flash is a smaller flash
+  # model not separately verified on this exact workload, so widen back to
+  # `-e CLAUDE_HEADLESS_MODEL=nvidia/nemotron-3-ultra-550b-a55b` here if
+  # results get noisier.
   #
   # 600s, not something tighter: verified working end-to-end (real jobs,
   # correctly formatted JSON) at 4m19s -- the variable isn't task complexity,
-  # it's NVIDIA NIM's free tier occasionally returning "Service temporarily
+  # it's a free-tier provider occasionally returning "Service temporarily
   # overloaded" mid-stream, which litellm retries through but which eats
   # unpredictable extra time. 600s leaves real headroom above the ~260s a
   # clean run takes.
-  result="$(timeout 600 docker compose exec -T -e CLAUDE_HEADLESS_MODEL=nvidia/nemotron-3-ultra-550b-a55b "$SERVICE" deploy/claude-headless.sh \
+  result="$(timeout 600 docker compose exec -T -e CLAUDE_HEADLESS_MODEL=career-ops/top3 "$SERVICE" deploy/claude-headless.sh \
     "Company: $name. Careers page: $url. Use Playwright to visit that URL. Find open roles matching portals.yml's title_filter.positive keywords (Full Stack, Backend, Software Engineer, etc.), excluding title_filter.negative matches, in a location passing portals.yml's location_filter (Israel / Tel Aviv / Ramat Gan / Herzliya / Petah Tikva / remote). Also check whether the page's job listings are served via Comeet (look for network requests or an iframe/script src pointing at www.comeet.co/careers-api/2.0/company/.../positions -- often visible by viewing the page source or the embedded widget's src attribute). Output ONLY raw JSON, nothing else -- no commentary, no markdown fences: {\"jobs\":[{\"url\":\"...\",\"title\":\"...\",\"location\":\"...\"}],\"comeet_api_url\":\"...\"}. Omit comeet_api_url entirely if you don't find one. If no jobs match, still output the object with an empty jobs array." \
     2>/dev/null < /dev/null)" || result=""
   cleanup_browser
