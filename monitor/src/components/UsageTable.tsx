@@ -22,6 +22,8 @@ export function UsageTable({ entries }: { entries: SpendLogEntry[] }) {
   }
 
   const totalCalls = entries.length;
+  const totalTokens = entries.reduce((sum, e) => sum + (e.total_tokens ?? 0), 0);
+  const totalSpend = entries.reduce((sum, e) => sum + (e.spend ?? 0), 0);
 
   const rows = [...byModel.entries()]
     .map(([model, r]) => ({
@@ -69,6 +71,16 @@ export function UsageTable({ entries }: { entries: SpendLogEntry[] }) {
             </tr>
           ))}
         </tbody>
+        <tfoot>
+          <tr className="border-t border-border font-medium">
+            <td className="pt-2 text-fg">Total</td>
+            <td className="pt-2 text-right tabular text-fg">{totalCalls.toLocaleString()}</td>
+            <td className="pt-2 text-right tabular text-muted">100%</td>
+            <td className="pt-2 text-right tabular text-fg">{totalTokens.toLocaleString()}</td>
+            <td className="pt-2 text-right tabular text-muted">--</td>
+            <td className="pt-2 text-right tabular text-muted">${totalSpend.toFixed(4)}</td>
+          </tr>
+        </tfoot>
       </table>
     </div>
   );
