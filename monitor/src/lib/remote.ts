@@ -93,28 +93,37 @@ export async function stopScan(): Promise<{ ok: boolean; error?: string }> {
     // runs the exact same browser/claude-process pkill the script's own
     // cleanup_browser() uses at its checkpoints, since killing the parent
     // doesn't touch children it already spawned (Playwright/chrome,
-    // `claude --print` for the search pass). Without that second pkill, a
-    // stop mid-search-pass would leave those orphaned until the next run's
-    // own pre-run cleanup happens to reap them.
+    // `claude --print` for the search pass -- NOT `claude -p`, which is
+    // what the web app's own unrelated PDF-tailoring jobs run as; matching
+    // that too would kill someone's in-flight CV generation). Without the
+    // second pkill, a stop mid-search-pass would leave those orphaned
+    // until the next run's own pre-run cleanup happens to reap them.
     //
-    // The `[d]eploy/...` bracket is the standard pkill-doesn't-kill-itself
-    // trick: `pkill -f` matches on the full command line, and this exec's
-    // OWN argv literally contains the pattern text (it's right there in
-    // the -c string below) -- an unbracketed pattern matches that too and
-    // SIGTERMs the very `sh -c` running it (confirmed live: exit 143,
-    // reported as a failure here even though the real target process was
-    // also killed in the same pass). `[d]eploy` as a character class still
-    // matches the literal "deploy" in the target's real command line, but
-    // not the literal bracketed text sitting in this invocation's own argv.
+    // Patterns go in via -e, not embedded in the -c script text: `pkill -f`
+    // matches on the full command line of every process, including this
+    // exec's own `sh -c` -- and that shell's own cmdline necessarily
+    // contains the pattern text verbatim if it's written into the script
+    // string. The obvious fix (bracket a char, e.g. "[d]eploy/...", the
+    // standard pkill-self-exclusion trick) isn't enough here: the second
+    // pattern's own "chrome.*ms-playwright-mcp" alternative contains an
+    // unbracketed "playwright-mcp" substring, which the FIRST alternative
+    // ("[p]laywright-mcp") then matches inside this shell's own cmdline --
+    // confirmed live, exit 137 (SIGKILL), the button reporting "Failed"
+    // while having actually killed the target process it was aimed at (a
+    // real discover-companies-native.sh run, then). Environment variables
+    // aren't part of a process's argv/cmdline, so `ps`/pgrep -f can't see
+    // them at all -- no text for the pattern to accidentally self-match
+    // against, from any angle.
     await runDocker([
       "exec",
+      "-e",
+      "SCAN_PAT=deploy/discover-companies-native.sh",
+      "-e",
+      "PROC_PAT=playwright-mcp|chrome.*ms-playwright-mcp|claude --print",
       "career-ops",
       "sh",
       "-c",
-      [
-        "pkill -f '[d]eploy/discover-companies-native.sh' 2>/dev/null || true",
-        "pkill -9 -f 'playwright-mcp|chrome.*ms-playwright-mcp|claude --print' 2>/dev/null || true",
-      ].join("; "),
+      'pkill -f "$SCAN_PAT" 2>/dev/null || true; pkill -9 -f "$PROC_PAT" 2>/dev/null || true',
     ]);
     return { ok: true };
   } catch (err) {
