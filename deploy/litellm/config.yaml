@@ -17,8 +17,10 @@ model_list:
     litellm_params:
       model: cloudflare/@cf/zai-org/glm-4.7-flash
       api_key: os.environ/CLOUDFLARE_API_TOKEN
-      extra_headers:
-        cf-aig-gateway-id: career-ops
+      # No AI Gateway configured on the account -- routing through
+      # cf-aig-gateway-id without one existing 400s with "Please configure
+      # AI Gateway in the Cloudflare dashboard" (code 2001). Calling Workers
+      # AI direct instead.
 
   # 561B params, 1M context, NVIDIA's own listing calls out "agentic
   # reasoning, coding, planning, tool calling" specifically -- the fit for
