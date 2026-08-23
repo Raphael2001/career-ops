@@ -994,8 +994,7 @@ tracked_companies:
     enabled: true
   - name: BeeHero
     careers_url: https://www.beehero.io/careers
-    scan_method: websearch
-    scan_query: site:www.beehero.io "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/78.00E/positions?token=87E32F43B7287E32F487E43F087E4C6E10FC
     enabled: true
   - name: SeeTree
     careers_url: https://www.seetree.ai/careers
