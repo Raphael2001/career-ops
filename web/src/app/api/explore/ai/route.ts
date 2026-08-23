@@ -126,7 +126,8 @@ Follow modes/discover.md exactly. You are running headless for the web:
   Valid JSON, one per line, the moment you're confident — stream them as you go.
 - Between envelopes, narrate briefly (plain text) what you're searching — shown live as your reasoning.
 - Be frugal (~3–6 searches, stop at a strong set). EVERY candidate is UNVERIFIED.
-- Be a GENEROUS FINDER, not a judge: when a constraint (location, seniority, stage) can't be confirmed from the shallow signal, INCLUDE + flag the uncertainty in "why" — don't discard. NEVER score or judge fit; the A–F evaluation does that later, with the full JD.
+- Be a GENEROUS FINDER, not a judge: when a constraint (seniority, stage, an unstated detail) can't be confirmed from the shallow signal, INCLUDE + flag the uncertainty in "why" — don't discard. NEVER score or judge fit; the A–F evaluation does that later, with the full JD.
+- LOCATION IS A HARD FILTER, not a soft signal: when the user's query names a specific city/country and does NOT ask for remote, a posting whose stated location is a different country, OR whose title/description says "Remote"/"Anywhere"/a different region, is a CONFIRMED mismatch — DISCARD it, don't include-and-flag. "Generous" above covers genuine ambiguity (location simply not stated anywhere you could find); it never covers a location signal that directly contradicts the query.
 - DEDUP: skip anything already known below; don't re-propose the user's existing companies.
 `;
 
