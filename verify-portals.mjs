@@ -17,10 +17,16 @@
  * Usage:
  *   node verify-portals.mjs                 # sweep tracked_companies in portals.yml
  *   node verify-portals.mjs --add cursor    # probe slug variants for one name
+ *   node verify-portals.mjs --check cursor  # re-verify one already-configured entry
  *   node verify-portals.mjs --strict        # exit non-zero if any slug is unresolved
  *   node verify-portals.mjs --file <path>   # use a specific portals file
  *
- * Network: only the sweep / --add paths hit the network. Importing the module
+ * --check exists so a single-company repair (the web dashboard's Fix button)
+ * can confirm its own result without re-probing every tracked company — a
+ * full sweep is slow enough on a rate-limited model backend that doing it as
+ * step 3 of a fix run blew the headless run's kill timeout end-to-end.
+ *
+ * Network: only the sweep / --add / --check paths hit the network. Importing the module
  * (for tests) runs nothing — main() is guarded — and all network access goes
  * through an injectable `fetchJson`, so the pure logic is testable offline.
  */
@@ -705,6 +711,38 @@ async function runAdd(name, { fetchJson }) {
   }
 }
 
+/**
+ * Re-verify ONE already-configured entry from portals.yml by name, instead of
+ * sweeping the whole file. Reuses verifyCompanies on a single-element array so
+ * the per-company probe/print logic (ATS + non-ATS providers alike) stays
+ * identical to the full sweep.
+ *
+ * @param {string} name
+ * @param {string} filePath
+ * @param {{fetchJson: Function, providers: unknown, httpCtx: unknown}} deps
+ */
+async function runCheck(name, filePath, { fetchJson, providers, httpCtx }) {
+  if (!name) {
+    console.error('verify-portals: --check needs a company name');
+    process.exitCode = 1;
+    return;
+  }
+  if (!existsSync(filePath)) {
+    console.log(`verify-portals: no portals file at ${filePath} — nothing to check.`);
+    return;
+  }
+  const config = yaml.load(readFileSync(filePath, 'utf-8'));
+  const companies = Array.isArray(config?.tracked_companies) ? config.tracked_companies : [];
+  const company = companies.find((c) => c?.name === name);
+  if (!company) {
+    console.log(`verify-portals: "${name}" not found in ${filePath}.`);
+    process.exitCode = 1;
+    return;
+  }
+  const results = await verifyCompanies([company], { fetchJson, providers, httpCtx });
+  printResults(results);
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const strict = args.includes('--strict');
@@ -720,6 +758,14 @@ async function main() {
   const filePath = resolve(
     fileFlag === -1 ? DEFAULT_PORTALS_PATH : args[fileFlag + 1] || '',
   );
+
+  const checkFlag = args.indexOf('--check');
+  if (checkFlag !== -1) {
+    const providers = await loadProviders(PROVIDERS_DIR);
+    const httpCtx = makeHttpCtx();
+    await runCheck(args[checkFlag + 1] || '', filePath, { fetchJson, providers, httpCtx });
+    return;
+  }
 
   // Load the scanner's provider plugins so non-ATS boards (Workday,
   // SuccessFactors, SmartRecruiters, …) get a real reachability probe instead
