@@ -980,8 +980,7 @@ tracked_companies:
     enabled: true
   - name: Overwolf
     careers_url: https://www.overwolf.com/careers
-    scan_method: websearch
-    scan_query: site:www.overwolf.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/B1.001/positions
     enabled: true
   - name: Playtika
     careers_url: https://www.playtika.com/careers/
