@@ -30,12 +30,28 @@ export async function getScanStatus(): Promise<ScanStatus> {
     // No -T/-i/-t: that's docker compose exec's flag for disabling a pty,
     // not plain docker exec's. Plain `docker exec container cmd` is
     // already non-interactive/no-tty by default with no flags at all.
+    //
+    // discover.log is shared with the host-level git-sync-portals.sh cron
+    // (see git-sync-portals.sh), which fires far more often than an actual
+    // scan run -- its lines can crowd the last "starting"/company line
+    // clean out of a plain tail -40 (#observed: 536-line log, last scan
+    // start at line 207, nothing but git-sync noise in the tail window).
+    // So the last-started/current-company lines are grepped from the
+    // WHOLE file, independent of the tail used for the recent-log display.
     const out = await runDocker([
       "exec",
       "career-ops",
       "sh",
       "-c",
-      "flock -n /tmp/discover-companies-native.lock -c true; echo LOCK_EXIT=$?; tail -n 40 /app/deploy/discover.log 2>/dev/null",
+      [
+        "flock -n /tmp/discover-companies-native.lock -c true; echo LOCK_EXIT=$?",
+        "echo __RECENT__",
+        "tail -n 40 /app/deploy/discover.log 2>/dev/null",
+        "echo __LAST_STARTED__",
+        "grep -F '] starting' /app/deploy/discover.log 2>/dev/null | tail -1",
+        "echo __LAST_COMPANY__",
+        "grep -E '^\\[[0-9]+\\][[:space:]]' /app/deploy/discover.log 2>/dev/null | tail -1",
+      ].join("; "),
     ]);
     return parseScanStatus(out);
   } catch (err) {
@@ -46,6 +62,27 @@ export async function getScanStatus(): Promise<ScanStatus> {
       recentLines: [],
       error: err instanceof Error ? err.message : String(err),
     };
+  }
+}
+
+export async function triggerScan(): Promise<{ ok: boolean; error?: string }> {
+  try {
+    // -d: detached, so this returns as soon as the process starts rather
+    // than blocking on the scan itself (a full pass can take most of a
+    // day). discover-companies-native.sh has its own flock, so a click
+    // while cron's midnight run (or a previous click) is already in
+    // flight is a harmless no-op, not a double run.
+    await runDocker([
+      "exec",
+      "-d",
+      "career-ops",
+      "sh",
+      "-c",
+      "cd /app && ./deploy/discover-companies-native.sh >> /app/deploy/discover.log 2>&1",
+    ]);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
 

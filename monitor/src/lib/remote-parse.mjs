@@ -4,30 +4,42 @@
 // web/src/lib/apply/exit.mjs.
 
 /**
- * @param {string} raw - combined stdout from the LOCK_EXIT + discover.log
- *   tail command in remote.ts's getScanStatus.
+ * @param {string} raw - combined stdout from remote.ts's getScanStatus:
+ *   a LOCK_EXIT line, then __RECENT__/__LAST_STARTED__/__LAST_COMPANY__
+ *   markers each followed by their own grep/tail output.
  * @returns {{running: boolean, currentCompany: string|null, lastStartedAt: string|null, recentLines: string[]}}
  */
 export function parseScanStatus(raw) {
-  const lines = raw.split("\n");
-  const lockLine = lines.find((l) => l.startsWith("LOCK_EXIT="));
+  const lockLine = raw.split("\n").find((l) => l.startsWith("LOCK_EXIT="));
   // flock -n exits 0 when it ACQUIRED the lock (nobody else held it) --
   // "running" means the opposite: exit 1, lock was already held.
   const running = lockLine?.trim() === "LOCK_EXIT=1";
-  const logLines = lines.filter((l) => !l.startsWith("LOCK_EXIT="));
 
-  const startedLine = [...logLines].reverse().find((l) => l.includes("starting"));
-  const startedMatch = startedLine?.match(/\[discover-native ([^\]]+)\]/);
+  const recentBlock = extractSection(raw, "__RECENT__", "__LAST_STARTED__");
+  const startedBlock = extractSection(raw, "__LAST_STARTED__", "__LAST_COMPANY__");
+  const companyBlock = extractSection(raw, "__LAST_COMPANY__", null);
 
-  const companyLine = [...logLines].reverse().find((l) => /\[\d+\]\s/.test(l));
-  const companyMatch = companyLine?.match(/\[\d+\]\s+(.+)$/);
+  const startedMatch = startedBlock.trim().match(/\[discover-native ([^\]]+)\]/);
+  const companyMatch = companyBlock.trim().match(/^\[\d+\]\s+(.+)$/);
 
   return {
     running,
     currentCompany: companyMatch?.[1]?.trim() ?? null,
     lastStartedAt: startedMatch?.[1] ?? null,
-    recentLines: logLines.filter((l) => l.trim().length > 0).slice(-15),
+    recentLines: recentBlock
+      .split("\n")
+      .filter((l) => l.trim().length > 0)
+      .slice(-15),
   };
+}
+
+/** @param {string} raw @param {string} startMarker @param {string|null} endMarker */
+function extractSection(raw, startMarker, endMarker) {
+  const startIdx = raw.indexOf(startMarker);
+  if (startIdx === -1) return "";
+  const from = startIdx + startMarker.length;
+  const endIdx = endMarker ? raw.indexOf(endMarker, from) : -1;
+  return endIdx === -1 ? raw.slice(from) : raw.slice(from, endIdx);
 }
 
 /**
