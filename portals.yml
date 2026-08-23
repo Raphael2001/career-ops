@@ -916,8 +916,7 @@ tracked_companies:
     enabled: true
   - name: Firebolt
     careers_url: https://www.firebolt.io/careers
-    scan_method: websearch
-    scan_query: site:www.firebolt.io "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/firebolt/positions
     enabled: true
   - name: Firefly
     careers_url: https://www.firefly.ai/careers
