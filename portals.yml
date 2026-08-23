@@ -1,14 +1,14 @@
 location_filter:
   always_allow:
-    - Israel
-    - Tel Aviv
+    - "Israel"
+    - "Tel Aviv"
   allow:
-    - Israel
-    - Tel Aviv
-    - Ramat Gan
-    - Herzliya
-    - Petah Tikva
-    - Petach Tikva
+    - "Israel"
+    - "Tel Aviv"
+    - "Ramat Gan"
+    - "Herzliya"
+    - "Petah Tikva"
+    - "Petach Tikva"
   block: []
   block_hard: []
 country_eligibility_filter:
@@ -38,51 +38,47 @@ country_eligibility_filter:
     - any country
 title_filter:
   positive:
-    - Full Stack
-    - Fullstack
-    - Full-Stack
-    - Backend
-    - Back-End
-    - Back End
-    - Software Engineer
-    - Software Developer
-    - Node.js
-    - Node Developer
-    - Python Developer
-    - React Developer
-    - Web Developer
-    - AI Engineer
-    - Agent
-    - Agentic
+    - "Full Stack"
+    - "Fullstack"
+    - "Full-Stack"
+    - "Backend"
+    - "Back-End"
+    - "Back End"
+    - "Software Engineer"
+    - "Software Developer"
+    - "Node.js"
+    - "Node Developer"
+    - "Python Developer"
+    - "React Developer"
+    - "Web Developer"
+    - "AI Engineer"
+    - "Agent"
+    - "Agentic"
   negative:
-    - Junior
-    - Intern
-    - Graduate
-    - Entry Level
-    - Staff
-    - Principal
-    - Lead
-    - Manager
-    - Director
-    - .NET
-    - iOS
-    - Android
-    - Ruby
-    - Embedded
-    - Firmware
-    - FPGA
-    - ASIC
-    - Blockchain
-    - Web3
-    - Crypto
-    - Salesforce Admin
-    - SAP
-    - Oracle EBS
-    - Mainframe
-    - COBOL
-    - Customer Care
-    - Kundenbetreuung
-    - java
+    - "Junior"
+    - "Intern"
+    - "Graduate"
+    - "Entry Level"
+    - "Staff"
+    - "Principal"
+    - "Lead"
+    - "Manager"
+    - "Director"
+    - ".NET"
+    - "iOS"
+    - "Android"
+    - "Ruby"
+    - "Embedded"
+    - "Firmware"
+    - "FPGA"
+    - "ASIC"
+    - "Blockchain"
+    - "Web3"
+    - "Crypto"
+    - "Salesforce Admin"
+    - "SAP"
+    - "Oracle EBS"
+    - "Mainframe"
   seniority_boost:
     - Senior
     - Staff
