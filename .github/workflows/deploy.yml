@@ -50,19 +50,32 @@ jobs:
 
           # `./cops rebuild` always recreates the career-ops container --
           # which kills any discovery scan running at that moment (this
-          # happened repeatedly). Most deploys don't actually need it: `.` is
-          # bind-mounted into the container, so a plain script/route/provider
-          # change is ALREADY live the instant `git reset --hard` above
-          # touches the file on disk -- no restart required -- and the web
-          # UI's Next dev server hot-reloads its own source on file change by
-          # itself. A rebuild is only genuinely needed when something that
-          # affects the IMAGE or the container's fixed config changed:
-          # Dockerfile (system packages), docker-compose.yml (env vars/ports/
-          # volumes are set at container-creation time, not bind-mount-live),
-          # or a package.json/package-lock.json (new dependencies node_modules
-          # doesn't have yet).
-          REBUILD_TRIGGERS='^(Dockerfile|docker-compose\.yml|package(-lock)?\.json|web/package(-lock)?\.json)$'
-          if [ "$OLD_SHA" != "$NEW_SHA" ] && git diff --name-only "$OLD_SHA" "$NEW_SHA" | grep -qE "$REBUILD_TRIGGERS"; then
+          # happened repeatedly). A rebuild is only genuinely needed when
+          # something that affects the IMAGE or a container's fixed config
+          # changed: Dockerfile (system packages), docker-compose.yml (env
+          # vars/ports/volumes are set at container-creation time, not
+          # bind-mount-live), or a package.json/package-lock.json (new
+          # dependencies node_modules doesn't have yet) for ANY service --
+          # monitor's own package.json is included here for the same reason
+          # web's is (#confirmed: monitor's yarn install --immutable had no
+          # coverage here before, so a monitor-only dependency bump would
+          # silently never rebuild).
+          #
+          # Below that, plain source changes under `web/` still need a
+          # RESTART even though `.` is bind-mounted: career-ops runs `next
+          # start` (a compiled production server, forced by container-start.sh
+          # for its own documented reasons), not `next dev` -- there is no
+          # hot reload. `container-start.sh` reruns `next build` fresh on
+          # every container boot, so a plain restart (cheap, no image
+          # rebuild, ~20s) is enough to pick up a route/component/lib change.
+          # (Confirmed live: a portals.yml-save bugfix landed via this exact
+          # path and silently never took effect until the container was
+          # restarted by hand -- the assumption that source changes were
+          # "already live via the bind mount" was wrong for anything under
+          # web/ that isn't a bare script.)
+          REBUILD_TRIGGERS='^(Dockerfile|docker-compose\.yml|package(-lock)?\.json|web/package(-lock)?\.json|monitor/package(-lock)?\.json)$'
+          CHANGED="$(git diff --name-only "$OLD_SHA" "$NEW_SHA" 2>/dev/null || true)"
+          if [ "$OLD_SHA" != "$NEW_SHA" ] && echo "$CHANGED" | grep -qE "$REBUILD_TRIGGERS"; then
             echo "Image-affecting file changed -- rebuild needed."
             if docker compose exec -T career-ops sh -c 'flock -n /tmp/discover-companies-native.lock -c true' 2>/dev/null; then
               echo "No discovery scan running -- safe rebuild."
@@ -70,8 +83,16 @@ jobs:
               echo "::warning::A discovery scan is running right now -- this rebuild will kill it mid-run (progress already made is safe on disk; it'll just need re-running, either manually or at tonight's cron)."
             fi
             ./cops rebuild
+          elif [ "$OLD_SHA" != "$NEW_SHA" ] && echo "$CHANGED" | grep -qE '^web/'; then
+            echo "web/ source changed -- restarting career-ops to pick it up (next start doesn't hot-reload)."
+            if docker compose exec -T career-ops sh -c 'flock -n /tmp/discover-companies-native.lock -c true' 2>/dev/null; then
+              echo "No discovery scan running -- safe restart."
+            else
+              echo "::warning::A discovery scan is running right now -- this restart will kill it mid-run (progress already made is safe on disk; it'll just need re-running, either manually or at tonight's cron)."
+            fi
+            docker compose restart career-ops
           else
-            echo "No image-affecting files changed -- skipping rebuild, code is already live via the bind mount (any running discovery scan is untouched)."
+            echo "No web/image-affecting files changed -- nothing to restart."
           fi
 
           ./cops doctor

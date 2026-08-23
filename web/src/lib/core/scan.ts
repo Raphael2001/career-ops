@@ -88,6 +88,14 @@ export function runDiscovery(filters: ExploreFilters, onEvent: (e: ScanEvent) =>
     const args = [
       rootScript("scan-ats-full"),
       "--dry-run",
+      // Every dataset here is far bigger than any one scan's --limit (e.g.
+      // 8,333 Greenhouse companies vs. a 150 cap) -- without --shuffle,
+      // sampleCompanies() always takes the same alphabetical-first slice,
+      // so every click of "Discover" scanned the exact same ~2% of the
+      // dataset forever. If that fixed slice happens to have nothing
+      // posted in the window, the button looks broken on every retry
+      // (confirmed live: reproducible 0 results, not a fluke).
+      "--shuffle",
       "--since",
       String(Math.max(1, filters.sinceDays || 7)),
       "--ats",
