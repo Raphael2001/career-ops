@@ -903,8 +903,7 @@ tracked_companies:
     enabled: true
   - name: Deepdub
     careers_url: https://www.deepdub.ai/careers
-    scan_method: websearch
-    scan_query: site:www.deepdub.ai "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/E7.00C/positions?token=7EC2F881FB037741FB017C4FD8FD83F60474C
     enabled: true
   - name: Earnix
     careers_url: https://earnix.com/careers/
