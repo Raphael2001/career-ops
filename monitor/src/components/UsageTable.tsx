@@ -1,7 +1,7 @@
 import { providerLabel } from "@/lib/providers";
 import type { SpendLogEntry } from "@/lib/litellm";
 
-export function UsageTable({ entries, total }: { entries: SpendLogEntry[]; total: number }) {
+export function UsageTable({ entries }: { entries: SpendLogEntry[] }) {
   if (entries.length === 0) {
     return <p className="text-sm text-muted">No calls recorded in this range.</p>;
   }
@@ -37,11 +37,6 @@ export function UsageTable({ entries, total }: { entries: SpendLogEntry[]; total
 
   return (
     <div className="flex flex-col gap-3">
-      {total > entries.length && (
-        <p className="text-xs text-faint">
-          Showing the latest {entries.length.toLocaleString()} of {total.toLocaleString()} calls in this range.
-        </p>
-      )}
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border text-left text-xs text-faint">

@@ -15,12 +15,9 @@ export default async function UsagePage({
   const { start, end, label, preset } = resolveRange(params);
 
   let entries: Awaited<ReturnType<typeof getSpendLogs>>["entries"] = [];
-  let total = 0;
   let error: string | null = null;
   try {
-    const result = await getSpendLogs(start, end);
-    entries = result.entries;
-    total = result.total;
+    entries = (await getSpendLogs(start, end)).entries;
   } catch (e) {
     error = String(e);
   }
@@ -38,7 +35,7 @@ export default async function UsagePage({
         {error ? (
           <p className="text-sm text-error">Usage fetch failed: {error}</p>
         ) : (
-          <UsageTable entries={entries} total={total} />
+          <UsageTable entries={entries} />
         )}
       </Panel>
     </div>
