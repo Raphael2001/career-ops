@@ -68,18 +68,27 @@ function scopeFrom(allowed) {
 }
 
 /**
- * The two scopes that exist. `persisting` kinds run the REAL mode and write
- * canonical artifacts (reserve-report-num.mjs / merge-tracker.mjs /
- * verify-portals.mjs), so they need Write + Bash. `readOnly` kinds produce their
- * result through the response stream and need no write tool at all — pdf emits
- * its CV in a `<<cv-html>>` envelope the backend persists (#2185), and research
- * only reports.
+ * The scopes that exist. `persisting` kinds run the REAL mode and write
+ * canonical artifacts (reserve-report-num.mjs / merge-tracker.mjs), so they need
+ * Write + Bash, plus WebFetch/WebSearch to research the company/JD. `readOnly`
+ * kinds produce their result through the response stream and need no write tool
+ * at all — pdf emits its CV in a `<<cv-html>>` envelope the backend persists
+ * (#2185), and research only reports. `fixPortal` also writes (Write + Bash to
+ * run verify-portals.mjs and Edit portals.yml) but drops WebFetch/WebSearch on
+ * purpose: its whole job is a fixed script + a one-field YAML edit, and giving
+ * it open-ended research tools was observed inviting exactly that — a run on a
+ * slug the script couldn't resolve went looking for the company's real careers
+ * page instead of reporting the script's own answer, ballooning a task that
+ * should take single-digit seconds into 10+ minutes and blowing every kill
+ * timeout tried. Withholding the tools closes that off at the access boundary,
+ * which a prompt instruction alone did not reliably do on a slower model.
  *
- * @type {{persisting: ToolScope, readOnly: ToolScope}}
+ * @type {{persisting: ToolScope, readOnly: ToolScope, fixPortal: ToolScope}}
  */
 export const TOOL_SCOPES = Object.freeze({
   persisting: scopeFrom("Read,WebFetch,WebSearch,Write,Edit,Bash,Glob,Grep"),
   readOnly: scopeFrom("Read,WebFetch,WebSearch,Glob,Grep"),
+  fixPortal: scopeFrom("Read,Write,Edit,Bash,Glob,Grep"),
 });
 
 /** Kinds that legitimately write files. Everything else is read-only. */
@@ -103,6 +112,7 @@ export const KNOWN_KINDS = Object.freeze(["pdf", "research", "evaluate", "fix-po
  * @returns {ToolScope}
  */
 export function toolScopeFor(kind) {
+  if (kind === "fix-portal") return TOOL_SCOPES.fixPortal;
   return PERSISTING_KINDS.has(kind) ? TOOL_SCOPES.persisting : TOOL_SCOPES.readOnly;
 }
 
