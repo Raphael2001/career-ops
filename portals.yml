@@ -561,7 +561,7 @@ tracked_companies:
     enabled: true
   - name: DoControl
     careers_url: https://www.docontrol.io/careers
-    api: https://www.comeet.co/careers-api/2.0/company/07.003/positions
+    api: https://www.comeet.co/careers-api/2.0/company/07.003/positions?token=7032A12E063F1B381831151C0C1C0C31153818
     enabled: true
   - name: HUB Security
     careers_url: https://hubsecurity.com/careers/
