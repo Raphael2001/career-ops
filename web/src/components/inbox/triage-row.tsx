@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Bookmark, BookmarkCheck, Loader2, X } from "lucide-react";
+import { Bookmark, BookmarkCheck, ExternalLink, Loader2, X } from "lucide-react";
 import type { InboxJob } from "@/lib/career-ops";
 import type { AtsSource } from "@/lib/explore";
 import { ATS_LABEL } from "@/lib/explore";
@@ -66,9 +66,15 @@ export function TriageRow({
 
       <CompanyLogo name={job.company} size={20} />
 
-      <div className="min-w-0 flex-1">
+      <a
+        href={job.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="min-w-0 flex-1"
+        title="Open the posting"
+      >
         <p className="truncate text-sm">
-          <span className="font-medium text-foreground">{job.company}</span>
+          <span className="font-medium text-foreground transition-colors hover:text-brand">{job.company}</span>
           <span className="text-muted"> · {job.role}</span>
         </p>
         <p className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-faint">
@@ -78,7 +84,18 @@ export function TriageRow({
           {/* 🔴 CRUDA: honest "not scored" — no fabricated match%. */}
           {!evaluated && <span className="italic text-muted">not scored</span>}
         </p>
-      </div>
+      </a>
+
+      <a
+        href={job.url}
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Open the posting"
+        aria-label={`Open the posting for ${job.company} ${job.role}`}
+        className="-m-1 inline-flex shrink-0 items-center justify-center rounded p-1 text-faint transition-colors hover:text-foreground max-sm:min-h-[44px] max-sm:min-w-[44px]"
+      >
+        <ExternalLink className="size-3.5" />
+      </a>
 
       {/* EVALUADA state (right-aligned, visually distinct from raw rows) */}
       {evaluated ? (
