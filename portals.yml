@@ -838,8 +838,7 @@ tracked_companies:
     enabled: true
   - name: CEVA Inc
     careers_url: https://www.ceva-dsp.com/careers/
-    scan_method: websearch
-    scan_query: site:www.ceva-dsp.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/76.005/positions?token=67526BE6752D332D33026BE135F033A8
     enabled: true
   - name: Ceragon Networks
     careers_url: https://ceragon.com/careers/
