@@ -600,8 +600,7 @@ tracked_companies:
     enabled: true
   - name: Nokod Security
     careers_url: https://nokodsecurity.com/careers
-    scan_method: websearch
-    scan_query: site:nokodsecurity.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/nokodsecurity/positions
     enabled: true
   - name: Panorays
     careers_url: https://panorays.com/careers/
