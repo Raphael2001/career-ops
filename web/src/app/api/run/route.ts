@@ -213,7 +213,16 @@ export async function POST(req: Request) {
       // probe CAN'T resolve (an ATS the probe doesn't cover, e.g. Comeet) was
       // measured reliably exceeding 285s before this run even reached its
       // "say so and stop" fallback — 285s was failing every such click.
-      const killMs = kind === "pdf" || kind === "fix-portal" ? 600_000 : 285_000;
+      //
+      // evaluate gets the same 600s: it's the same shape of task (Bash/Read/
+      // WebFetch/WebSearch research, no render phase after) and was observed
+      // hitting the identical failure — reserve-report-num.mjs had already
+      // written reports/NNN-RESERVED.md, the agent was still mid-research at
+      // the 285s mark, got SIGTERM'd before ever reaching Write, and the run
+      // surfaced as "This evaluation didn't save a report" instead of a
+      // finished score. research stays at 285s: it has no Write step to reach
+      // and produces its result through the stream itself.
+      const killMs = kind === "pdf" || kind === "fix-portal" || kind === "evaluate" ? 600_000 : 285_000;
       killer = setTimeout(() => {
         try { child.kill("SIGTERM"); } catch { /* ignore */ }
       }, killMs);
