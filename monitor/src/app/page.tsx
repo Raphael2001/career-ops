@@ -52,7 +52,12 @@ export default async function OverviewPage() {
                 )}
               </>
             ) : (
-              <StatusBadge status="neutral" label="idle" />
+              <>
+                <StatusBadge status="neutral" label="idle" />
+                {scan?.lastStartedAt && (
+                  <p className="mt-2 truncate font-mono text-xs text-muted">last ran {scan.lastStartedAt}</p>
+                )}
+              </>
             )}
           </Panel>
         </Link>
