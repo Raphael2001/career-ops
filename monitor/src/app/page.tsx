@@ -27,8 +27,8 @@ export default async function OverviewPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <Link href="/models" className="block">
-          <Panel title="Models">
+        <Link href="/models" className="block h-full">
+          <Panel title="Models" className="h-full">
             {models ? (
               <>
                 <p className="text-2xl font-semibold tabular text-fg">{models.length}</p>
@@ -40,8 +40,8 @@ export default async function OverviewPage() {
           </Panel>
         </Link>
 
-        <Link href="/scan" className="block">
-          <Panel title="Discovery scan">
+        <Link href="/scan" className="block h-full">
+          <Panel title="Discovery scan" className="h-full">
             {scan?.error ? (
               <StatusBadge status="error" label="unreachable" />
             ) : scan?.running ? (
@@ -57,8 +57,8 @@ export default async function OverviewPage() {
           </Panel>
         </Link>
 
-        <Link href="/containers" className="block">
-          <Panel title="Containers">
+        <Link href="/containers" className="block h-full">
+          <Panel title="Containers" className="h-full">
             {containers?.error ? (
               <StatusBadge status="error" label="unreachable" />
             ) : (
