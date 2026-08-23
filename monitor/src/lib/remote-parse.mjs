@@ -20,7 +20,7 @@ export function parseScanStatus(raw) {
   const companyBlock = extractSection(raw, "__LAST_COMPANY__", null);
 
   const startedMatch = startedBlock.trim().match(/\[discover-native ([^\]]+)\]/);
-  const companyMatch = companyBlock.trim().match(/^\[\d+\]\s+(.+)$/);
+  const companyMatch = companyBlock.trim().match(/\[\d+\]\s+(.+)$/);
 
   return {
     running,

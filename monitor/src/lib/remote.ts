@@ -50,7 +50,7 @@ export async function getScanStatus(): Promise<ScanStatus> {
         "echo __LAST_STARTED__",
         "grep -F '] starting' /app/deploy/discover.log 2>/dev/null | tail -1",
         "echo __LAST_COMPANY__",
-        "grep -E '^\\[[0-9]+\\][[:space:]]' /app/deploy/discover.log 2>/dev/null | tail -1",
+        "grep -E '\\[[0-9]+\\][[:space:]]' /app/deploy/discover.log 2>/dev/null | tail -1",
       ].join("; "),
     ]);
     return parseScanStatus(out);
