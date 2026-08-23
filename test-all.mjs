@@ -5844,6 +5844,106 @@ try {
   fail(`slug auto-fixer tests crashed: ${e.message}`);
 }
 
+// ── 10c. PIPELINE PRUNER (prune-pipeline.mjs) ───────────────────
+
+console.log('\n10c. Pipeline pruner');
+
+try {
+  const { parsePipelineLine, pruneLines } =
+    await import(pathToFileURL(join(ROOT, 'prune-pipeline.mjs')).href);
+  const { buildTitleFilter } = await import(pathToFileURL(join(ROOT, 'title-keywords.mjs')).href);
+  const { buildLocationFilter } = await import(pathToFileURL(join(ROOT, 'scan.mjs')).href);
+
+  const parsed = parsePipelineLine('- [ ] https://x.com/1 | Acme | Staff Engineer | Remote, Canada | posted: 2026-01-01');
+  if (parsed && !parsed.done && parsed.url === 'https://x.com/1' && parsed.company === 'Acme' &&
+      parsed.title === 'Staff Engineer' && parsed.location === 'Remote, Canada') {
+    pass('parsePipelineLine reads url/company/title/location, ignoring the trailing posted: label');
+  } else {
+    fail(`parsePipelineLine wrong: ${JSON.stringify(parsed)}`);
+  }
+
+  if (parsePipelineLine('## Pending') === null && parsePipelineLine('') === null) {
+    pass('parsePipelineLine returns null for a header/blank line, not a crash');
+  } else {
+    fail('parsePipelineLine should return null for non-job lines');
+  }
+
+  const doneParsed = parsePipelineLine('- [x] https://x.com/2 | Acme | Staff Engineer | USA');
+  if (doneParsed?.done === true) {
+    pass('parsePipelineLine reads [x] as done');
+  } else {
+    fail(`parsePipelineLine done-flag wrong: ${JSON.stringify(doneParsed)}`);
+  }
+
+  // ── pruneLines: the actual retroactive filter ──
+  const titleFilter = buildTitleFilter({ positive: ['Software Engineer'], negative: ['Staff', 'Lead'] });
+  const locationFilter = buildLocationFilter({ allow: ['Israel', 'Tel Aviv'], reject_remote: true });
+  const fixture = [
+    '# Pipeline — Pending URLs',
+    '',
+    '## Pending',
+    '- [ ] https://x.com/1 | Acme | Software Engineer | Tel Aviv | posted: 2026-01-01',
+    '- [ ] https://x.com/2 | Acme | Staff Software Engineer | Tel Aviv | posted: 2026-01-01',
+    '- [ ] https://x.com/3 | Acme | Software Engineer | Remote, Canada | posted: 2026-01-01',
+    '- [x] https://x.com/4 | Acme | Staff Software Engineer | Remote, Canada',
+  ].join('\n');
+  const { keptText, removed } = pruneLines(fixture, titleFilter, locationFilter);
+
+  if (keptText.includes('https://x.com/1') && !keptText.includes('https://x.com/2') && !keptText.includes('https://x.com/3')) {
+    pass('pruneLines drops a title-filter mismatch and a location-filter mismatch, keeps a genuine match');
+  } else {
+    fail(`pruneLines kept/dropped the wrong rows:\n${keptText}`);
+  }
+
+  if (keptText.includes('https://x.com/4')) {
+    pass('pruneLines never touches an already-done [x] row, even one that would otherwise be dropped');
+  } else {
+    fail('pruneLines removed a [x] (done) row — it must only ever act on pending rows');
+  }
+
+  if (keptText.includes('# Pipeline — Pending URLs') && keptText.includes('## Pending')) {
+    pass('pruneLines preserves headers and blank lines verbatim');
+  } else {
+    fail('pruneLines lost structural (non-job) lines');
+  }
+
+  if (removed.length === 2 && removed.find((r) => r.url === 'https://x.com/2')?.reason === 'title' &&
+      removed.find((r) => r.url === 'https://x.com/3')?.reason === 'location') {
+    pass('pruneLines reports the correct reason (title vs location) per removed row');
+  } else {
+    fail(`pruneLines removed-reason mismatch: ${JSON.stringify(removed)}`);
+  }
+
+  // ── CLI: preview vs --write ──
+  const tmp = mkdtempSync(join(tmpdir(), 'career-ops-prune-'));
+  const tmpPipeline = join(tmp, 'pipeline.md');
+  const tmpPortals = join(tmp, 'portals.yml');
+  writeFileSync(tmpPipeline, fixture);
+  writeFileSync(tmpPortals, yaml.dump({ title_filter: { positive: ['Software Engineer'], negative: ['Staff', 'Lead'] }, location_filter: { allow: ['Israel', 'Tel Aviv'], reject_remote: true } }));
+
+  const previewOut = run(NODE, ['prune-pipeline.mjs', '--file', tmpPipeline, '--portals-file', tmpPortals]);
+  const previewJson = previewOut ? JSON.parse(previewOut) : null;
+  const fileUnchangedAfterPreview = readFileSync(tmpPipeline, 'utf-8') === fixture;
+  if (previewJson?.previewOnly === true && previewJson?.removed === 2 && fileUnchangedAfterPreview) {
+    pass('prune-pipeline.mjs CLI: preview (no --write) reports the count and leaves the file untouched');
+  } else {
+    fail(`prune-pipeline.mjs preview wrong: json=${JSON.stringify(previewJson)} unchanged=${fileUnchangedAfterPreview}`);
+  }
+
+  run(NODE, ['prune-pipeline.mjs', '--file', tmpPipeline, '--portals-file', tmpPortals, '--write']);
+  const afterWrite = readFileSync(tmpPipeline, 'utf-8');
+  if (afterWrite.includes('https://x.com/1') && !afterWrite.includes('https://x.com/2') &&
+      !afterWrite.includes('https://x.com/3') && afterWrite.includes('https://x.com/4')) {
+    pass('prune-pipeline.mjs CLI: --write applies the same removal to the real file');
+  } else {
+    fail(`prune-pipeline.mjs --write wrote the wrong content:\n${afterWrite}`);
+  }
+
+  rmSync(tmp, { recursive: true, force: true });
+} catch (e) {
+  fail(`pipeline pruner tests crashed: ${e.message}`);
+}
+
 // ── 11. AGENTS.md INTEGRITY ─────────────────────────────────────
 
 console.log('\n11. AGENTS.md integrity');

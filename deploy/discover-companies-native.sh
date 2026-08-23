@@ -84,6 +84,33 @@ node deploy/upgrade-websearch-tier.mjs \
 
 # -- 2. Per-company headless Level-1 (Playwright) scan of the no-ATS tier --
 echo "$LOG_PREFIX headless Level-1 (Playwright) scan, one company per call"
+
+# Read once, not per company: the prompt below used to just SAY "portals.yml's
+# title_filter.negative" without ever showing the agent what that list
+# actually contains -- trusting a single-shot headless call on a slow/free
+# model to independently go read and correctly apply a list it was never
+# shown. Confirmed live: Staff/Principal/Lead-titled roles kept landing in
+# data/pipeline.md despite Staff/Principal/Lead all being configured negative
+# keywords. Interpolating the real lists removes the guesswork entirely.
+POSITIVE_KEYWORDS="$(node -e '
+  const yaml = require("js-yaml");
+  const fs = require("fs");
+  const cfg = yaml.load(fs.readFileSync("portals.yml", "utf8"));
+  console.log((cfg?.title_filter?.positive || []).join(", "));
+')"
+NEGATIVE_KEYWORDS="$(node -e '
+  const yaml = require("js-yaml");
+  const fs = require("fs");
+  const cfg = yaml.load(fs.readFileSync("portals.yml", "utf8"));
+  console.log((cfg?.title_filter?.negative || []).join(", "));
+')"
+LOCATION_ALLOW="$(node -e '
+  const yaml = require("js-yaml");
+  const fs = require("fs");
+  const cfg = yaml.load(fs.readFileSync("portals.yml", "utf8"));
+  const lf = cfg?.location_filter || {};
+  console.log([...(lf.always_allow || []), ...(lf.allow || [])].join(", "));
+')"
 company_count=0
 while IFS= read -r line; do
   # `|| true` / explicit fallbacks on every step below: this loop has died
@@ -118,7 +145,7 @@ while IFS= read -r line; do
   # the group after `wait` returns regardless of how it exited.
   OUT_FILE="$(mktemp /tmp/career-ops-result-XXXX.json)"
   setsid env CLAUDE_HEADLESS_MODEL=nvidia/nemotron-3-ultra-550b-a55b timeout -k 15 600 deploy/claude-headless.sh \
-    "Company: $name. Careers page: $url. Use Playwright to visit that URL. Find open roles matching portals.yml's title_filter.positive keywords (Full Stack, Backend, Software Engineer, etc.), excluding title_filter.negative matches, in a location passing portals.yml's location_filter (Israel / Tel Aviv / Ramat Gan / Herzliya / Petah Tikva / remote). Also check whether the page's job listings are served via Comeet (look for network requests or an iframe/script src pointing at www.comeet.co/careers-api/2.0/company/.../positions -- often visible by viewing the page source or the embedded widget's src attribute). Output ONLY raw JSON, nothing else -- no commentary, no markdown fences: {\"jobs\":[{\"url\":\"...\",\"title\":\"...\",\"location\":\"...\"}],\"comeet_api_url\":\"...\"}. Omit comeet_api_url entirely if you don't find one. If no jobs match, still output the object with an empty jobs array." \
+    "Company: $name. Careers page: $url. Use Playwright to visit that URL. Find open roles whose title contains at least one of these keywords: $POSITIVE_KEYWORDS. REJECT any role whose title contains any of these words, even if it also matches a keyword above: $NEGATIVE_KEYWORDS. Only include a role if its location plausibly matches one of: $LOCATION_ALLOW. Do NOT include a role whose location is a different country, or whose title/description says Remote/Anywhere without also naming one of those places. Also check whether the page's job listings are served via Comeet (look for network requests or an iframe/script src pointing at www.comeet.co/careers-api/2.0/company/.../positions -- often visible by viewing the page source or the embedded widget's src attribute). Output ONLY raw JSON, nothing else -- no commentary, no markdown fences: {\"jobs\":[{\"url\":\"...\",\"title\":\"...\",\"location\":\"...\"}],\"comeet_api_url\":\"...\"}. Omit comeet_api_url entirely if you don't find one. If no jobs match, still output the object with an empty jobs array." \
     > "$OUT_FILE" 2>/dev/null &
   child_pid=$!
   wait "$child_pid" || true
