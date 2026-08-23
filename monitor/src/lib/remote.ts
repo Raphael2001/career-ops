@@ -96,13 +96,23 @@ export async function stopScan(): Promise<{ ok: boolean; error?: string }> {
     // `claude --print` for the search pass). Without that second pkill, a
     // stop mid-search-pass would leave those orphaned until the next run's
     // own pre-run cleanup happens to reap them.
+    //
+    // The `[d]eploy/...` bracket is the standard pkill-doesn't-kill-itself
+    // trick: `pkill -f` matches on the full command line, and this exec's
+    // OWN argv literally contains the pattern text (it's right there in
+    // the -c string below) -- an unbracketed pattern matches that too and
+    // SIGTERMs the very `sh -c` running it (confirmed live: exit 143,
+    // reported as a failure here even though the real target process was
+    // also killed in the same pass). `[d]eploy` as a character class still
+    // matches the literal "deploy" in the target's real command line, but
+    // not the literal bracketed text sitting in this invocation's own argv.
     await runDocker([
       "exec",
       "career-ops",
       "sh",
       "-c",
       [
-        "pkill -f deploy/discover-companies-native.sh 2>/dev/null || true",
+        "pkill -f '[d]eploy/discover-companies-native.sh' 2>/dev/null || true",
         "pkill -9 -f 'playwright-mcp|chrome.*ms-playwright-mcp|claude --print' 2>/dev/null || true",
       ].join("; "),
     ]);
