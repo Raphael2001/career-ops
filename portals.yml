@@ -920,8 +920,7 @@ tracked_companies:
     enabled: true
   - name: Firefly
     careers_url: https://www.firefly.ai/careers
-    scan_method: websearch
-    scan_query: site:www.firefly.ai "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/39.000/positions?token=930372052B04980126024C024C02DF09304050
     enabled: true
   - name: Komodor
     careers_url: https://komodor.com/careers
