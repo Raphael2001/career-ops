@@ -11,6 +11,14 @@ location_filter:
     - "Petach Tikva"
   block: []
   block_hard: []
+  # User: on-site Tel Aviv-area only, no remote — an allow-list of specific
+  # cities can never enumerate every location a remote-titled posting from an
+  # unrelated country might use, so without this a "Remote, Canada" role still
+  # gets rescued through by its own title even though it matches none of the
+  # allow entries above. always_allow ("Israel"/"Tel Aviv" in the location
+  # string) still wins over this — a genuinely Israel-based remote role still
+  # passes.
+  reject_remote: true
 country_eligibility_filter:
   exclusionary:
     - must be located in the united states

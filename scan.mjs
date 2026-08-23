@@ -280,6 +280,16 @@ export function buildLocationFilter(locationFilter) {
   const allow = compileLocationKeywordList(locationFilter.allow);
   const block = compileLocationKeywordList(locationFilter.block);
   const blockHard = compileLocationKeywordList(locationFilter.block_hard);
+  // Opt-in, off by default (existing configs are unaffected): the title-remote
+  // rescue below exists so a genuinely local-but-unenumerated match (an
+  // allow-list of specific cities can't list every one) still passes when its
+  // location string is too vague to judge. But `allow` alone cannot express
+  // "reject remote" — a `block` list has to separately name every country the
+  // user doesn't want, and forgetting one lets ANY remote-titled posting from
+  // anywhere through unfiltered by `allow`. rejectRemote skips that rescue
+  // outright for a user who wants on-site-only regardless of how thorough
+  // their `block` list is.
+  const rejectRemote = locationFilter.reject_remote === true;
 
   return (location, url, title) => {
     const lower = typeof location === 'string' ? location.trim().toLowerCase() : '';
@@ -309,6 +319,7 @@ export function buildLocationFilter(locationFilter) {
     if (block.length > 0 && block.some(matches)) return false;
     if (allow.length === 0) return true;
     if (allow.some(matches)) return true;
+    if (rejectRemote) return false;
     // Last resort only. Deliberately placed AFTER `block` so a remote title can
     // never rescue a blocked location — "Program Manager - Remote" in Bengaluru
     // stays rejected. This widens `allow`, never `block`.
