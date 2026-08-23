@@ -676,8 +676,7 @@ tracked_companies:
     enabled: true
   - name: Justt
     careers_url: https://www.justt.ai/careers
-    scan_method: websearch
-    scan_query: site:www.justt.ai "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/36.001/positions?token=6312526631018C41EF518C431883188C62
     enabled: true
   - name: One Zero
     careers_url: https://www.onezero.co.il/careers
