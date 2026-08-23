@@ -86,6 +86,32 @@ export async function triggerScan(): Promise<{ ok: boolean; error?: string }> {
   }
 }
 
+export async function stopScan(): Promise<{ ok: boolean; error?: string }> {
+  try {
+    // Kills the script process itself (releasing its flock as a side
+    // effect of the fd closing -- no separate unlock step needed), then
+    // runs the exact same browser/claude-process pkill the script's own
+    // cleanup_browser() uses at its checkpoints, since killing the parent
+    // doesn't touch children it already spawned (Playwright/chrome,
+    // `claude --print` for the search pass). Without that second pkill, a
+    // stop mid-search-pass would leave those orphaned until the next run's
+    // own pre-run cleanup happens to reap them.
+    await runDocker([
+      "exec",
+      "career-ops",
+      "sh",
+      "-c",
+      [
+        "pkill -f deploy/discover-companies-native.sh 2>/dev/null || true",
+        "pkill -9 -f 'playwright-mcp|chrome.*ms-playwright-mcp|claude --print' 2>/dev/null || true",
+      ].join("; "),
+    ]);
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
 export type ContainerStatus = {
   Name: string;
   Service: string;

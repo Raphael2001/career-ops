@@ -2,7 +2,7 @@ import { getScanStatus } from "@/lib/remote";
 import { Panel } from "@/components/Panel";
 import { StatusBadge } from "@/components/StatusBadge";
 import { AutoRefresh } from "@/components/AutoRefresh";
-import { TriggerScanButton } from "@/components/TriggerScanButton";
+import { ScanControlButton } from "@/components/ScanControlButton";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,7 @@ export default async function ScanPage() {
             deploy/discover-companies-native.sh -- daily at 00:00 Israel time, or run manually.
           </p>
         </div>
-        {!scan.error && <TriggerScanButton disabled={scan.running} />}
+        {!scan.error && <ScanControlButton running={scan.running} />}
       </div>
 
       {scan.error ? (
