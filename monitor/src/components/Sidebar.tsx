@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, BrainCircuit, Search, Box } from "lucide-react";
+import { LayoutDashboard, BrainCircuit, BarChart3, Search, Box } from "lucide-react";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 const NAV_ITEMS = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
   { href: "/models", label: "Models", icon: BrainCircuit },
+  { href: "/usage", label: "Usage", icon: BarChart3 },
   { href: "/scan", label: "Scan", icon: Search },
   { href: "/containers", label: "Containers", icon: Box },
 ];

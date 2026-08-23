@@ -11,7 +11,8 @@ export default function ModelsLoading() {
       <div>
         <h1 className="text-lg font-semibold text-fg">Models</h1>
         <p className="mt-1 text-sm text-muted">
-          Live health -- each row is a real test call litellm just made, not a cached status.
+          Health is cached for 5 minutes so navigating here doesn&apos;t force a live sweep every
+          time. Hit Recheck to dispatch a real test call to every model right now.
         </p>
       </div>
 
@@ -25,16 +26,6 @@ export default function ModelsLoading() {
             Testing every model live -- this dispatches a real call to each provider and can take
             up to 90-150s, longer if any provider is slow to respond.
           </p>
-        </div>
-      </Panel>
-
-      <Panel title="Usage (last 200 calls)">
-        <div className="flex items-center gap-3 py-2">
-          <span
-            className="h-4 w-4 animate-spin rounded-full border-2 border-border border-t-primary"
-            aria-hidden="true"
-          />
-          <p className="text-sm text-muted">Loading...</p>
         </div>
       </Panel>
     </div>

@@ -1,26 +1,10 @@
-import { getHealth, getSpendLogs, type SpendLogEntry } from "@/lib/litellm";
+import { getHealth } from "@/lib/litellm";
+import { providerLabel } from "@/lib/providers";
 import { Panel } from "@/components/Panel";
 import { StatusBadge } from "@/components/StatusBadge";
 import { RefreshButton } from "@/components/RefreshButton";
 
 export const dynamic = "force-dynamic";
-
-// litellm_params.model (what /health reports) -> a human label for the
-// provider actually serving it. Update this when deploy/litellm/config.yaml
-// changes -- there's no way to derive "Z.ai" from "openai/glm-4.7-flash"
-// (it's routed through the generic openai/ provider) without this map.
-const PROVIDER_LABELS: Record<string, string> = {
-  "nvidia_nim/nvidia/nemotron-3.5-lightning-30b-a3b": "NVIDIA NIM",
-  "nvidia_nim/nvidia/nemotron-3-ultra-550b-a55b": "NVIDIA NIM",
-  "groq/openai/gpt-oss-120b": "Groq",
-  "openrouter/nvidia/nemotron-3-ultra-550b-a55b:free": "OpenRouter",
-  "openai/glm-4.7-flash": "Z.ai",
-  "mistral/mistral-small-latest": "Mistral",
-};
-
-function providerLabel(model: string): string {
-  return PROVIDER_LABELS[model] ?? model.split("/")[0];
-}
 
 export default async function ModelsPage({
   searchParams,
@@ -30,12 +14,10 @@ export default async function ModelsPage({
   const params = await searchParams;
   const force = params.recheck !== undefined;
 
-  const [healthResult, spendResult] = await Promise.allSettled([getHealth(force), getSpendLogs(200)]);
+  const [healthResult] = await Promise.allSettled([getHealth(force)]);
 
   const health = healthResult.status === "fulfilled" ? healthResult.value.report : null;
   const healthError = healthResult.status === "rejected" ? String(healthResult.reason) : null;
-  const spend = spendResult.status === "fulfilled" ? spendResult.value : null;
-  const spendError = spendResult.status === "rejected" ? String(spendResult.reason) : null;
 
   const checkedAt =
     healthResult.status === "fulfilled"
@@ -104,14 +86,6 @@ export default async function ModelsPage({
           </div>
         )}
       </Panel>
-
-      <Panel title="Usage (last 200 calls)">
-        {spendError ? (
-          <p className="text-sm text-error">Usage fetch failed: {spendError}</p>
-        ) : (
-          <UsageTable entries={spend ?? []} />
-        )}
-      </Panel>
     </div>
   );
 }
@@ -145,75 +119,4 @@ function ModelRow({
 
 function firstLine(text?: string): string | undefined {
   return text?.split("\n")[0]?.slice(0, 140);
-}
-
-function UsageTable({ entries }: { entries: SpendLogEntry[] }) {
-  if (entries.length === 0) {
-    return <p className="text-sm text-muted">No calls recorded yet.</p>;
-  }
-
-  const byModel = new Map<
-    string,
-    { calls: number; tokens: number; spend: number; durations: number[] }
-  >();
-
-  for (const e of entries) {
-    const key = e.model_group ?? e.model;
-    const row = byModel.get(key) ?? { calls: 0, tokens: 0, spend: 0, durations: [] };
-    row.calls += 1;
-    row.tokens += e.total_tokens ?? 0;
-    row.spend += e.spend ?? 0;
-    if (e.request_duration_ms) row.durations.push(e.request_duration_ms);
-    byModel.set(key, row);
-  }
-
-  const totalCalls = entries.length;
-
-  const rows = [...byModel.entries()]
-    .map(([model, r]) => ({
-      model,
-      provider: providerLabel(model),
-      calls: r.calls,
-      share: totalCalls > 0 ? r.calls / totalCalls : 0,
-      tokens: r.tokens,
-      spend: r.spend,
-      avgMs: r.durations.length ? Math.round(r.durations.reduce((a, b) => a + b, 0) / r.durations.length) : null,
-    }))
-    .sort((a, b) => b.calls - a.calls);
-
-  return (
-    <table className="w-full text-sm">
-      <thead>
-        <tr className="border-b border-border text-left text-xs text-faint">
-          <th className="pb-2 font-medium">Model</th>
-          <th className="pb-2 font-medium tabular text-right">Calls</th>
-          <th className="pb-2 font-medium tabular text-right">Share</th>
-          <th className="pb-2 font-medium tabular text-right">Tokens</th>
-          <th className="pb-2 font-medium tabular text-right">Avg latency</th>
-          <th className="pb-2 font-medium tabular text-right">Spend</th>
-        </tr>
-      </thead>
-      <tbody className="divide-y divide-border">
-        {rows.map((r) => (
-          <tr key={r.model}>
-            <td className="py-2">
-              <div className="flex items-center gap-2">
-                <span className="shrink-0 rounded bg-surface-hover px-1.5 py-0.5 text-[11px] font-medium text-muted">
-                  {r.provider}
-                </span>
-                <span className="truncate font-mono text-fg">{r.model}</span>
-              </div>
-            </td>
-            <td className="py-2 text-right tabular text-fg">{r.calls}</td>
-            <td className="py-2 text-right tabular text-muted">{(r.share * 100).toFixed(0)}%</td>
-            <td className="py-2 text-right tabular text-fg">{r.tokens.toLocaleString()}</td>
-            <td className="py-2 text-right tabular text-muted">
-              {r.avgMs !== null ? `${(r.avgMs / 1000).toFixed(1)}s` : "--"}
-            </td>
-            <td className="py-2 text-right tabular text-muted">${r.spend.toFixed(4)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
 }

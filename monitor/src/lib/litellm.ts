@@ -112,17 +112,16 @@ export type SpendLogEntry = {
 // litellm's paginated replacement and explicitly excludes those columns at
 // the SQL level (see spend_management_endpoints.py's ui_view_spend_logs --
 // "Build raw SQL to fetch paginated data WITHOUT heavy columns").
-// start_date/end_date are mandatory on v2 (400s without them) -- 30 days
-// covers this deploy's own maximum_spend_logs_retention_period (see
-// deploy/litellm/config.yaml), so it's a "give me everything retained"
-// window in practice, not an arbitrary narrowing.
+// start_date/end_date are mandatory on v2 (400s without them) -- the Usage
+// page is responsible for picking a range (preset or custom); this just
+// formats and fetches it.
 function formatForSpendLogs(d: Date): string {
   return d.toISOString().slice(0, 19).replace("T", " ");
 }
 
-export async function getSpendLogs(pageSize = 100): Promise<SpendLogEntry[]> {
-  const end = new Date();
-  const start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+export type SpendLogsResult = { entries: SpendLogEntry[]; total: number };
+
+export async function getSpendLogs(start: Date, end: Date, pageSize = 1000): Promise<SpendLogsResult> {
   const params = new URLSearchParams({
     page: "1",
     page_size: String(pageSize),
@@ -131,8 +130,8 @@ export async function getSpendLogs(pageSize = 100): Promise<SpendLogEntry[]> {
     start_date: formatForSpendLogs(start),
     end_date: formatForSpendLogs(end),
   });
-  const data = await fetchJson<{ data: SpendLogEntry[] }>(`/spend/logs/v2?${params}`, 20_000);
-  return data.data;
+  const data = await fetchJson<{ data: SpendLogEntry[]; total: number }>(`/spend/logs/v2?${params}`, 20_000);
+  return { entries: data.data, total: data.total };
 }
 
 export type DailySpend = { date: string; spend: number };
