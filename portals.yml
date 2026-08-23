@@ -969,8 +969,7 @@ tracked_companies:
     enabled: true
   - name: Fabric
     careers_url: https://getfabric.com/careers/
-    scan_method: websearch
-    scan_query: site:getfabric.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/52.009/positions?token=25996412C8106FBBD152170B0E16259
     notes: Tel Aviv/NY. Micro-fulfillment robotics (formerly CommonSense Robotics).
     enabled: true
   - name: AI21 Labs
