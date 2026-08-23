@@ -104,8 +104,35 @@ export type SpendLogEntry = {
   request_duration_ms?: number;
 };
 
-export async function getSpendLogs(limit = 100): Promise<SpendLogEntry[]> {
-  return fetchJson<SpendLogEntry[]>(`/spend/logs?limit=${limit}`, 20_000);
+// /spend/logs is litellm's deprecated, unpaginated endpoint -- it doesn't
+// even accept `limit`, so it was fetching every row ever logged, each
+// carrying full messages/response/proxy_server_request blobs (hundreds of
+// KB apiece with this deploy's store_prompts_in_spend_logs: true). That's
+// what was timing out and resetting the DB connection. /spend/logs/v2 is
+// litellm's paginated replacement and explicitly excludes those columns at
+// the SQL level (see spend_management_endpoints.py's ui_view_spend_logs --
+// "Build raw SQL to fetch paginated data WITHOUT heavy columns").
+// start_date/end_date are mandatory on v2 (400s without them) -- 30 days
+// covers this deploy's own maximum_spend_logs_retention_period (see
+// deploy/litellm/config.yaml), so it's a "give me everything retained"
+// window in practice, not an arbitrary narrowing.
+function formatForSpendLogs(d: Date): string {
+  return d.toISOString().slice(0, 19).replace("T", " ");
+}
+
+export async function getSpendLogs(pageSize = 100): Promise<SpendLogEntry[]> {
+  const end = new Date();
+  const start = new Date(end.getTime() - 30 * 24 * 60 * 60 * 1000);
+  const params = new URLSearchParams({
+    page: "1",
+    page_size: String(pageSize),
+    sort_by: "startTime",
+    sort_order: "desc",
+    start_date: formatForSpendLogs(start),
+    end_date: formatForSpendLogs(end),
+  });
+  const data = await fetchJson<{ data: SpendLogEntry[] }>(`/spend/logs/v2?${params}`, 20_000);
+  return data.data;
 }
 
 export type DailySpend = { date: string; spend: number };
