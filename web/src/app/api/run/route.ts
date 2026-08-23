@@ -205,7 +205,15 @@ export async function POST(req: Request) {
       // generate-pdf.mjs mid-render. 600s agent / ~200s render is ample —
       // a Chromium PDF render normally takes low tens of seconds even with a
       // cold Playwright launch.
-      const killMs = kind === "pdf" ? 600_000 : 285_000;
+      //
+      // fix-portal gets the same 600s as pdf, not evaluate/research's 285s: it
+      // is a genuine multi-turn Bash+Edit loop (probe, edit portals.yml,
+      // re-verify) with no render phase after, so it can use nearly the whole
+      // maxDuration. On a slow/free model backend a single company that the
+      // probe CAN'T resolve (an ATS the probe doesn't cover, e.g. Comeet) was
+      // measured reliably exceeding 285s before this run even reached its
+      // "say so and stop" fallback — 285s was failing every such click.
+      const killMs = kind === "pdf" || kind === "fix-portal" ? 600_000 : 285_000;
       killer = setTimeout(() => {
         try { child.kill("SIGTERM"); } catch { /* ignore */ }
       }, killMs);
