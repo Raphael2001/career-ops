@@ -74,6 +74,11 @@ export function ExplorerView({
         throw new Error(body?.error || `HTTP ${response.status}`);
       }
       setSaveNotice("Saved to portals.yml");
+      // Clear any leftover ?q=/&not= from a prior scan (#discover sets these
+      // via history.replaceState) -- otherwise a reload right after Save
+      // re-inits from that stale URL snapshot instead of the file we just
+      // wrote, and the save looks like it silently did nothing.
+      window.history.replaceState(null, "", "/explore");
     } catch (e) {
       setSaveNotice(`Could not save defaults: ${e instanceof Error ? e.message : "unknown error"}`);
     } finally {

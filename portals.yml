@@ -75,6 +75,7 @@ title_filter:
     - "Android"
     - "Ruby"
     - "Embedded"
+    - "C++"
     - "Firmware"
     - "FPGA"
     - "ASIC"
