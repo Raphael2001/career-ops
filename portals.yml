@@ -1068,8 +1068,7 @@ tracked_companies:
     enabled: true
   - name: Zencity
     careers_url: https://zencity.io/careers/
-    scan_method: websearch
-    scan_query: site:zencity.io "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/56.00B/positions
     notes: Tel Aviv. Govtech resident-experience analytics.
     enabled: true
   - name: Wix
