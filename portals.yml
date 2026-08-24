@@ -839,8 +839,7 @@ tracked_companies:
     enabled: true
   - name: Ceragon Networks
     careers_url: https://ceragon.com/careers/
-    scan_method: websearch
-    scan_query: site:ceragon.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/D3.003/positions?token=3D3131FF4C01AC57A61AC51E98131FF4C
     enabled: true
   - name: ECI Telecom
     careers_url: https://www.ecitele.com/careers/
