@@ -1045,8 +1045,7 @@ tracked_companies:
     enabled: true
   - name: Wiliot
     careers_url: https://www.wiliot.com/careers
-    scan_method: websearch
-    scan_query: site:www.wiliot.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/F6.003/positions?token=6F329B2DE6379829B229B2037983E8B3E8B
     enabled: true
   - name: Windward
     careers_url: https://windward.ai/careers/
