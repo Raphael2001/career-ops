@@ -879,8 +879,7 @@ tracked_companies:
     enabled: true
   - name: Bright Data
     careers_url: https://brightdata.com/careers
-    scan_method: websearch
-    scan_query: site:brightdata.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/88.007/positions?token=887332A3BB119951995221C199519954438110E
     enabled: true
   - name: Coralogix
     careers_url: https://coralogix.com/careers/
