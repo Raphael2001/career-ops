@@ -902,8 +902,7 @@ tracked_companies:
     enabled: true
   - name: Earnix
     careers_url: https://earnix.com/careers/
-    scan_method: websearch
-    scan_query: site:earnix.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/93.00B/positions/D3.E6C?token=39B1207AD1AD1736736120739B193D736
     enabled: true
   - name: Explorium
     careers_url: https://www.explorium.ai/careers/
