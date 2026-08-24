@@ -918,8 +918,7 @@ tracked_companies:
     enabled: true
   - name: Komodor
     careers_url: https://komodor.com/careers
-    scan_method: websearch
-    scan_query: site:komodor.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/96.005/positions?token=695277ED2A020E9277E69534A81A54277E
     enabled: true
   - name: Salto
     careers_url: https://www.salto.io/careers
