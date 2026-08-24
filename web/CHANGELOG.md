@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.8.0](https://github.com/Raphael2001/career-ops/compare/web-v0.7.1...web-v0.8.0) (2026-08-24)
+
+
+### Features
+
+* **explore:** save search defaults to portals config ([127472d](https://github.com/Raphael2001/career-ops/commit/127472d1d327819c6540a81682d2cabcd39acd4b))
+* **web:** restrict the local dashboard API to same-origin and loopback ([b3974e6](https://github.com/Raphael2001/career-ops/commit/b3974e6104d83c2714fd0d071898a7c7b9f68726))
+
+
+### Bug Fixes
+
+* **api/portals:** text-splice instead of full yaml.dump(), preserve comments ([d2223f1](https://github.com/Raphael2001/career-ops/commit/d2223f19525dd68429920c890e771d1b9ed81cbe))
+* **deps:** update web npm dependencies (major) ([1207eae](https://github.com/Raphael2001/career-ops/commit/1207eae4b5799cb92602c99737fd2f0cee1319c9))
+* **portals:** scope the Fix-button reverify to one company, not all 164 ([db571b3](https://github.com/Raphael2001/career-ops/commit/db571b3603c18f6da09cc9afb9ae66a0a7c28b2f))
+* **web,deploy:** shuffle discovery scans, restart on web/ source changes ([ffc48a3](https://github.com/Raphael2001/career-ops/commit/ffc48a371a06736e7088994547b6db119b54ff68))
+* **web,monitor:** flow-style YAML splice bug, surface real save errors, pin yarn ([1191e20](https://github.com/Raphael2001/career-ops/commit/1191e20c859a2aec486ff5871d70225618d73805))
+* **web:** allow LAN-IP dev origin, container is reached at 192.168.0.121:4000 ([f1c07c4](https://github.com/Raphael2001/career-ops/commit/f1c07c4c26e3abf014a2526820d205bf1a7a6a55))
+* **web:** give AI search its own mode file instead of borrowing discover.md ([631ee17](https://github.com/Raphael2001/career-ops/commit/631ee1785546f726f4289b8fd3cdea5964689011))
+* **web:** give evaluate the same 600s kill budget as fix-portal/pdf ([dbba538](https://github.com/Raphael2001/career-ops/commit/dbba538de11044160b86263fb050dda428a27570))
+* **web:** give fix-portal the same 600s kill budget as pdf, not 285s ([8b7f80c](https://github.com/Raphael2001/career-ops/commit/8b7f80cce7af46fbf945c30d401d428a3dbced58))
+* **web:** give the methodology link a real tap target and a new-tab cue ([#3023](https://github.com/Raphael2001/career-ops/issues/3023)) ([344a116](https://github.com/Raphael2001/career-ops/commit/344a116de15fd98c1e1d48aae9bf08bbdc4f067e))
+* **web:** keep child stderr out of the status response on the crash path ([#3022](https://github.com/Raphael2001/career-ops/issues/3022)) ([883ebec](https://github.com/Raphael2001/career-ops/commit/883ebec33c1c775bb295c4b4eecca31fc53066da))
+* **web:** keep the query string in the Explore dedup key so distinct postings don't collapse ([#3082](https://github.com/Raphael2001/career-ops/issues/3082)) ([275e213](https://github.com/Raphael2001/career-ops/commit/275e2137fb804a762caed8bed34194c5920b71c4))
+* **web:** keep the run stream alive during silent agent phases ([#3026](https://github.com/Raphael2001/career-ops/issues/3026)) ([aaeb114](https://github.com/Raphael2001/career-ops/commit/aaeb114238283ce3cc44b7b3e2168ed2d22c56a8))
+* **web:** make AI-search location matching a hard filter, not a soft one ([983d9df](https://github.com/Raphael2001/career-ops/commit/983d9dff86658139d70541f374213c3dd1b50efe))
+* **web:** pipeline inbox rows never linked to the actual posting ([faa52c8](https://github.com/Raphael2001/career-ops/commit/faa52c8cb73322860d448658a3b2709edfb0cd88))
+* **web:** report the uncapped weekly match count while keeping the render bounded ([#2662](https://github.com/Raphael2001/career-ops/issues/2662)) ([6e9f029](https://github.com/Raphael2001/career-ops/commit/6e9f0299dff6fc0903b97b349390408d1f859571))
+* **web:** serve production build, not dev mode ([589db90](https://github.com/Raphael2001/career-ops/commit/589db9025b207379ce008a73a359129106d021c8))
+* **web:** stamp pipeline first_seen with the local day, not UTC ([#3081](https://github.com/Raphael2001/career-ops/issues/3081)) ([809e93b](https://github.com/Raphael2001/career-ops/commit/809e93b419094dcc77c8f3d3f1a1c31c578a547a))
+* **web:** strip WebFetch/WebSearch from fix-portal's tool scope ([9005a23](https://github.com/Raphael2001/career-ops/commit/9005a23ee7189d5c228d7800850b93e6ae40a97d))
+
 ## [0.7.1](https://github.com/santifer/career-ops/compare/web-v0.7.0...web-v0.7.1) (2026-08-20)
 
 
