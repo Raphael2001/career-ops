@@ -811,8 +811,7 @@ tracked_companies:
     enabled: true
   - name: Imagry
     careers_url: https://imagry.io/careers/
-    scan_method: websearch
-    scan_query: site:imagry.io "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/B7.00F/positions
     notes: Haifa. Autonomous driving software.
     enabled: true
   - name: Mobileye
