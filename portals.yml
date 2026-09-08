@@ -534,8 +534,7 @@ tracked_companies:
     enabled: true
   - name: Cybellum
     careers_url: https://cybellum.com/careers
-    scan_method: websearch
-    scan_query: site:cybellum.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/D4.001/positions?token=4D118151CE6E7313441344E731CE62B591CE6
     enabled: true
   - name: CyberArk
     careers_url: https://www.cyberark.com/careers/
@@ -715,9 +714,7 @@ tracked_companies:
     notes: Tel Aviv/Boston. Asset management SaaS platform.
     enabled: true
   - name: Aidoc
-    careers_url: https://www.aidoc.com/careers/
-    scan_method: websearch
-    scan_query: site:www.aidoc.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    careers_url: https://job-boards.greenhouse.io/aidocmedical
     enabled: true
   - name: Binah.ai
     careers_url: https://www.binah.ai/careers
@@ -734,9 +731,7 @@ tracked_companies:
     api: https://www.comeet.co/careers-api/2.0/company/B4.004/positions?token=4B417841C3804B420EC02A54E1C4B4
     enabled: true
   - name: K Health
-    careers_url: https://khealth.com/careers/
-    scan_method: websearch
-    scan_query: site:khealth.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    careers_url: https://job-boards.greenhouse.io/khealthcareers
     enabled: true
   - name: Nano-X Imaging
     careers_url: https://www.nanox.vision/careers
@@ -792,14 +787,10 @@ tracked_companies:
     scan_query: site:valens.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
     enabled: true
   - name: Vayyar Imaging
-    careers_url: https://vayyar.com/careers/
-    scan_method: websearch
-    scan_query: site:vayyar.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    careers_url: https://apply.workable.com/vayyar
     enabled: true
   - name: Via Transportation
-    careers_url: https://ridewithvia.com/careers/
-    scan_method: websearch
-    scan_query: site:ridewithvia.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    careers_url: https://job-boards.greenhouse.io/via
     enabled: true
   - name: UVeye
     careers_url: https://uveye.com/careers/
