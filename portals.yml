@@ -419,8 +419,7 @@ tracked_companies:
     notes: Public (NYSE:SMWB). Tel Aviv. Digital intelligence.
     enabled: true
   - name: Sisense
-    careers_url: https://www.sisense.com
-    api: https://boards-api.greenhouse.io/v1/boards/sisense/jobs
+    careers_url: https://jobs.ashbyhq.com/sisense
     notes: NY/Tel Aviv. Embedded BI/analytics.
     enabled: true
   - name: Taboola
@@ -550,7 +549,7 @@ tracked_companies:
     enabled: true
   - name: Cyera
     careers_url: https://www.cyera.com/careers
-    api: https://www.comeet.co/careers-api/2.0/company/17.008/positions
+    api: https://www.comeet.co/careers-api/2.0/company/17.008/positions?token=7182A90154871823783FD838C031A802378
     enabled: true
   - name: Cynet
     careers_url: https://www.cynet.com/careers/
@@ -573,8 +572,7 @@ tracked_companies:
     enabled: true
   - name: HUB Security
     careers_url: https://hubsecurity.com/careers/
-    scan_method: websearch
-    scan_query: site:hubsecurity.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/07.00F/positions?token=70F2A5A152D70F70F316903F8770F3169
     enabled: true
   - name: Hunters
     careers_url: https://www.hunters.security/careers
@@ -596,7 +594,7 @@ tracked_companies:
     enabled: true
   - name: Legit Security
     careers_url: https://www.legitsecurity.com/careers
-    api: https://www.comeet.co/careers-api/2.0/company/37.004/positions
+    api: https://www.comeet.co/careers-api/2.0/company/37.004/positions?token=7342B38159C159C40D41CD0073440D42404
     enabled: true
   - name: Nokod Security
     careers_url: https://nokodsecurity.com/careers
@@ -805,13 +803,12 @@ tracked_companies:
     enabled: true
   - name: UVeye
     careers_url: https://uveye.com/careers/
-    scan_method: websearch
-    scan_query: site:uveye.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/92.00F/positions?token=29FA7C17971797FBA179753E53E0A7C
     notes: Tel Aviv. AI vehicle inspection.
     enabled: true
   - name: Imagry
     careers_url: https://imagry.io/careers/
-    api: https://www.comeet.co/careers-api/2.0/company/B7.00F/positions
+    api: https://www.comeet.co/careers-api/2.0/company/B7.00F/positions?token=7BF2E7A1EFC1EFCF7E7BF36393DF826BB2E7A
     notes: Haifa. Autonomous driving software.
     enabled: true
   - name: Mobileye
@@ -825,8 +822,7 @@ tracked_companies:
     enabled: true
   - name: Allot Communications
     careers_url: https://www.allot.com/careers/
-    scan_method: websearch
-    scan_query: site:www.allot.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/C4.009/positions?token=4C917ED1CB699217ED04C92B11217F2B11
     enabled: true
   - name: Amdocs
     careers_url: https://www.amdocs.com/careers
@@ -887,14 +883,11 @@ tracked_companies:
     scan_query: site:coralogix.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
     enabled: true
   - name: D-ID
-    careers_url: https://www.d-id.com/careers/
-    scan_method: websearch
-    scan_query: site:www.d-id.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    careers_url: https://apply.workable.com/d-id
     enabled: true
   - name: Darrow
     careers_url: https://darrow.ai/careers
-    scan_method: websearch
-    scan_query: site:darrow.ai "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/D8.000/positions?token=8D034E046808D01A7034E0468034E034E03DB0
     enabled: true
   - name: Deepdub
     careers_url: https://www.deepdub.ai/careers
@@ -902,15 +895,15 @@ tracked_companies:
     enabled: true
   - name: Earnix
     careers_url: https://earnix.com/careers/
-    api: https://www.comeet.co/careers-api/2.0/company/93.00B/positions/D3.E6C?token=39B1207AD1AD1736736120739B193D736
+    api: https://www.comeet.co/careers-api/2.0/company/93.00B/positions?token=39B1207AD1AD1736736120739B193D736
     enabled: true
   - name: Explorium
     careers_url: https://www.explorium.ai/careers/
-    api: https://www.comeet.co/careers-api/2.0/company/B4.00E/positions
+    api: https://www.comeet.co/careers-api/2.0/company/B4.00E/positions?token=4BE17B61C744BE1C7497C4BE12F817B612F8
     enabled: true
   - name: Firebolt
     careers_url: https://www.firebolt.io/careers
-    api: https://www.comeet.co/careers-api/2.0/company/firebolt/positions
+    api: https://www.comeet.co/careers-api/2.0/company/26.004/positions?token=62424D80374424D824D8126C126C1EB41890
     enabled: true
   - name: Firefly
     careers_url: https://www.firefly.ai/careers
@@ -973,7 +966,7 @@ tracked_companies:
     enabled: true
   - name: Overwolf
     careers_url: https://www.overwolf.com/careers
-    api: https://www.comeet.co/careers-api/2.0/company/B1.001/positions
+    api: https://www.comeet.co/careers-api/2.0/company/B1.001/positions?token=1B16C4BD7005131B1A26F391B1
     enabled: true
   - name: Playtika
     careers_url: https://www.playtika.com/careers/
@@ -1000,8 +993,7 @@ tracked_companies:
     enabled: true
   - name: Empathy
     careers_url: https://www.empathy.com/careers
-    scan_method: websearch
-    scan_query: site:www.empathy.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/F8.007/positions/38.B43?token=8F735CA47B835CA3EC111EE1AE535CA11EE8F7
     enabled: true
   - name: Gong
     careers_url: https://boards.greenhouse.io/gongio
@@ -1012,14 +1004,11 @@ tracked_companies:
     scan_query: site:www.guesty.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
     enabled: true
   - name: Hibob
-    careers_url: https://www.hibob.com/careers/
-    scan_method: websearch
-    scan_query: site:www.hibob.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    careers_url: https://careers.smartrecruiters.com/hibob
     enabled: true
   - name: Immunai
     careers_url: https://www.immunai.com/careers
-    scan_method: websearch
-    scan_query: site:www.immunai.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/37.009/positions?token=7392B5615AB1CE42B5615AB328F039C81CE4
     enabled: true
   - name: Kaltura
     careers_url: https://corp.kaltura.com/careers/
@@ -1033,12 +1022,11 @@ tracked_companies:
     enabled: true
   - name: Team8
     careers_url: https://team8.vc/careers/
-    scan_method: websearch
-    scan_query: site:team8.vc "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/F2.004/positions?token=2F4EC42F42F45E814AC1A945E814AC5E8
     enabled: true
   - name: Trigo
     careers_url: https://www.trigo.tech/careers
-    api: https://www.comeet.co/careers-api/2.0/company/A6.005/positions
+    api: https://www.comeet.co/careers-api/2.0/company/A6.005/positions?token=6A527DED4A6A52E8321396A503528D4A
     enabled: true
   - name: Unity
     careers_url: https://join.com/companies/unity
@@ -1057,8 +1045,7 @@ tracked_companies:
     enabled: true
   - name: monday.com
     careers_url: https://monday.com/careers/
-    scan_method: websearch
-    scan_query: site:monday.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/19.614/positions
     enabled: true
   - name: Own Company
     careers_url: https://owndata.com/careers/
@@ -1068,7 +1055,7 @@ tracked_companies:
     enabled: true
   - name: Zencity
     careers_url: https://zencity.io/careers/
-    api: https://www.comeet.co/careers-api/2.0/company/56.00B/positions
+    api: https://www.comeet.co/careers-api/2.0/company/56.00B/positions?token=65B262265B1FC7131126220CB62622196C
     notes: Tel Aviv. Govtech resident-experience analytics.
     enabled: true
   - name: Wix
