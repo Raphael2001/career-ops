@@ -88,18 +88,25 @@ export function writeCvHtml({ pdfPaths, html }) {
 
 /**
  * Spawn generate-pdf.mjs as a plain child process and resolve once it exits.
- * @param {{spawnFn: Function, execPath: string, root: string, html: string, finalPdf: string, format: "letter"|"a4", reportNum: string}} args
+ * @param {{spawnFn: Function, execPath: string, root: string, html: string, finalPdf: string, format: "letter"|"a4", reportNum: string, maxPages?: number}} args
  * @returns {Promise<{ok: boolean, stderr: string}>}
  */
-export function spawnGeneratePdf({ spawnFn, execPath, root, html, finalPdf, format, reportNum }) {
+export function spawnGeneratePdf({ spawnFn, execPath, root, html, finalPdf, format, reportNum, maxPages }) {
   return new Promise((resolve) => {
+    const args = [path.join(root, "generate-pdf.mjs"), html, finalPdf, `--format=${format}`, `--report=${reportNum}`, "--allow-reorder"];
+    // config/profile.yml's cv.max_pages (resolvePdfPaths). Absent by default —
+    // generate-pdf.mjs's own default (2 pages, warning-only) applies then.
+    // --strict-pages turns overflow into a hard failure rather than silently
+    // shipping the PDF anyway, matching what the CLI path does when a human
+    // passes --max-pages by hand.
+    if (Number.isInteger(maxPages) && maxPages > 0) args.push(`--max-pages=${maxPages}`, "--strict-pages");
     const child = spawnFn(
       execPath,
       // --allow-reorder: a real cv.md's section order can legitimately diverge
       // from the template's fixed markup order, so this guard would otherwise
       // hard-fail every web-triggered render — same bypass a human already
       // applies manually via the CLI when this diverges.
-      [path.join(root, "generate-pdf.mjs"), html, finalPdf, `--format=${format}`, `--report=${reportNum}`, "--allow-reorder"],
+      args,
       { cwd: root },
     );
     let stderr = "";
@@ -175,6 +182,26 @@ export function cleanupPdfScratch(scratchDir, prefix) {
 /** @typedef {RenderFailedResult | RenderedResult} RenderResult */
 
 /**
+ * Pick the actionable line out of generate-pdf.mjs's stderr.
+ *
+ * generate-pdf.mjs can print a NON-fatal `⚠️ …` warning (e.g. --allow-reorder's
+ * section-order notice) before the `❌ …` line that actually explains why it
+ * exited non-zero (e.g. --strict-pages's page-budget rejection) — both go to
+ * stderr, so a caller reading the raw buffer sees the harmless warning first.
+ * route.ts's error event is truncated to 200 chars for the run log, and a
+ * leading warning can by itself eat that whole budget, burying the real
+ * reason the render failed. Every fatal exit in generate-pdf.mjs is prefixed
+ * `❌` (see its console.error calls) — surface those lines when present, over
+ * the raw buffer's leading bytes.
+ * @param {string} stderr
+ * @returns {string}
+ */
+function fatalReason(stderr) {
+  const fatalLines = stderr.split("\n").filter((l) => l.trimStart().startsWith("❌"));
+  return fatalLines.length > 0 ? fatalLines.join("\n") : stderr;
+}
+
+/**
  * Render the tailored HTML to a PDF, then mark the tracker's PDF column
  * ready — only after the render is CONFIRMED successful, never
  * optimistically. Always cleans up scratch files, whether the render
@@ -183,17 +210,17 @@ export function cleanupPdfScratch(scratchDir, prefix) {
  * Call after writeCvHtml for the same pdfPaths — this reads the HTML that
  * function wrote. `format` is passed in rather than read back off disk, so the two
  * no longer share a file and the only coupling left is the HTML itself.
- * @param {{spawnFn: Function, execPath: string, root: string, pdfPaths: {html: string, finalPdf: string}, format: "letter"|"a4", reportNum: string}} args
+ * @param {{spawnFn: Function, execPath: string, root: string, pdfPaths: {html: string, finalPdf: string, maxPages?: number}, format: "letter"|"a4", reportNum: string}} args
  * @returns {Promise<RenderResult>}
  */
 export async function renderAndMarkPdf({ spawnFn, execPath, root, pdfPaths, format, reportNum }) {
   const warnings = [];
 
-  const render = await spawnGeneratePdf({ spawnFn, execPath, root, html: pdfPaths.html, finalPdf: pdfPaths.finalPdf, format, reportNum });
+  const render = await spawnGeneratePdf({ spawnFn, execPath, root, html: pdfPaths.html, finalPdf: pdfPaths.finalPdf, format, reportNum, maxPages: pdfPaths.maxPages });
   cleanupPdfScratch(path.dirname(pdfPaths.html), `cv-web-${reportNum}.`);
 
   if (!render.ok) {
-    return { kind: "render-failed", error: render.stderr || "PDF rendering failed." };
+    return { kind: "render-failed", error: fatalReason(render.stderr) || "PDF rendering failed." };
   }
 
   // The PDF is the real deliverable and it already rendered successfully — a

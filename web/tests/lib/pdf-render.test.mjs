@@ -276,6 +276,38 @@ test("renderAndMarkPdf: generate-pdf.mjs fails -> render-failed, mark-pdf-ready 
   }
 });
 
+test("renderAndMarkPdf: a leading non-fatal warning does not bury the ❌ line that explains the real failure", async () => {
+  // Given generate-pdf.mjs prints a harmless --allow-reorder warning BEFORE the
+  // ❌ line that explains why it actually exited non-zero (e.g. --strict-pages's
+  // page-budget rejection) — both land on the same stderr buffer.
+  const dir = makeScratchDir();
+  const pdfPaths = makePdfPaths(dir, "5");
+  writeFileSync(pdfPaths.html, "<html></html>");
+  const { spawnFn } = makeRouterSpawn({
+    "generate-pdf.mjs": {
+      exitCode: 1,
+      stderr:
+        "⚠️  CV section order diverges from cv.md: rendered professional summary -> work experience -> projects -> education -> skills; cv.md professional summary -> work experience -> technical skills -> projects -> education (proceeding — --allow-reorder set)\n" +
+        "❌ CV is 2 pages; the allowed maximum is 1 page. Trim lower-priority bullets, older roles, secondary projects, or the competencies strip, then regenerate. (--strict-pages requested)",
+    },
+    "mark-pdf-ready.mjs": { exitCode: 0 },
+  });
+  try {
+    // When rendering
+    const result = await renderAndMarkPdf({ spawnFn, execPath: "node", root: "/root", pdfPaths, format: "letter", reportNum: "5" });
+
+    // Then the reported error is the ❌ line, not the ⚠️ warning ahead of it — a
+    // 200-char truncation downstream (route.ts) must not cut this off before it
+    // ever reaches the actual reason.
+    assert.deepEqual(result, {
+      kind: "render-failed",
+      error: "❌ CV is 2 pages; the allowed maximum is 1 page. Trim lower-priority bullets, older roles, secondary projects, or the competencies strip, then regenerate. (--strict-pages requested)",
+    });
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
+
 test("renderAndMarkPdf: render succeeds but mark-pdf-ready fails with a parseable error -> rendered with a specific warning", async () => {
   // Given generate-pdf.mjs succeeds but mark-pdf-ready.mjs fails with a --json error
   const dir = makeScratchDir();

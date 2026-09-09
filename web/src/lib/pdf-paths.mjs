@@ -23,6 +23,7 @@ export function slugify(s) {
  * @typedef {Object} PdfPaths
  * @property {string} html - Where the backend writes the tailored HTML it parsed out of the agent's envelope (#2185).
  * @property {string} finalPdf - Where the backend renders the final PDF (output/cv-{candidate}-{company}-{date}.pdf).
+ * @property {number|undefined} maxPages - config/profile.yml's `cv.max_pages`, or undefined to keep generate-pdf.mjs's own default (2, warning-only).
  */
 
 /**
@@ -61,12 +62,21 @@ export function resolvePdfPaths(input, today, root, findReportFile) {
   const companyMatch = path.basename(reportFile).match(/^\d+-(.+)-\d{4}-\d{2}-\d{2}\.md$/);
   const companySlug = companyMatch ? companyMatch[1] : "company";
   let candidateSlug = "candidate";
+  let maxPages;
   try {
     // js-yaml v4's load() uses the safe default schema (no arbitrary type
     // construction, unlike Python's PyYAML) — same pattern already used in
     // web/src/app/api/profile/route.ts and portals/route.ts.
     const profile = yaml.load(fs.readFileSync(path.join(root, "config", "profile.yml"), "utf8"));
     if (profile?.candidate?.full_name) candidateSlug = slugify(profile.candidate.full_name);
+    // Validated here rather than trusted verbatim: this value reaches
+    // generate-pdf.mjs's --max-pages flag, and that script already rejects a
+    // non-positive-integer with its own error — silently passing through
+    // something like "one" would surface as a confusing CLI-arg failure deep
+    // in a child process instead of a clear one at the source of the value.
+    const raw = profile?.cv?.max_pages;
+    if (Number.isInteger(raw) && raw > 0) maxPages = raw;
+    else if (raw !== undefined) console.warn(`resolvePdfPaths: config/profile.yml's cv.max_pages (${JSON.stringify(raw)}) is not a positive integer, ignoring`);
   } catch (err) {
     // A missing profile.yml is expected (not every checkout has one yet) and
     // falls back silently. Anything else — a real YAML syntax error in the
@@ -83,6 +93,7 @@ export function resolvePdfPaths(input, today, root, findReportFile) {
     paths: {
       html: path.join(scratchDir, `cv-web-${input}.html`),
       finalPdf: path.join(root, "output", `cv-${candidateSlug}-${companySlug}-${today}.pdf`),
+      maxPages,
     },
   };
 }
