@@ -527,6 +527,7 @@ tracked_companies:
     careers_url: https://careers.checkpoint.com/
     scan_method: websearch
     scan_query: site:careers.checkpoint.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    notes: Custom Comeet-backed portal at careers.checkpoint.com, no token-free JSON (checked 2026-09-09). websearch only.
     enabled: true
   - name: Claroty
     careers_url: https://claroty.com/careers
@@ -540,12 +541,14 @@ tracked_companies:
     careers_url: https://www.cyberark.com/careers/
     scan_method: websearch
     scan_query: site:www.cyberark.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    notes: Independent (NASDAQ:CYBR); careers site has no public ATS JSON (checked 2026-09-09). websearch only.
     enabled: true
   - name: Cybersixgill
     careers_url: https://cybersixgill.com/careers
     scan_method: websearch
     scan_query: site:cybersixgill.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
-    enabled: true
+    notes: Acquired by Bitsight — careers now on wd1.myworkdayjobs.com/Bitsight. Disabled 2026-09-09.
+    enabled: false
   - name: Cyera
     careers_url: https://www.cyera.com/careers
     api: https://www.comeet.co/careers-api/2.0/company/17.008/positions?token=7182A90154871823783FD838C031A802378
@@ -559,11 +562,13 @@ tracked_companies:
     careers_url: https://cyolo.io/careers/
     scan_method: websearch
     scan_query: site:cyolo.io "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    notes: Self-proxied Comeet at cyolo.io/api/v1/comeet/* (non-standard host, no provider). websearch only (2026-09-09).
     enabled: true
   - name: Deep Instinct
     careers_url: https://www.deepinstinct.com/careers
     scan_method: websearch
     scan_query: site:www.deepinstinct.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    notes: Next.js _next/data JSON (build-id pinned, rotates). No stable ATS API (2026-09-09). websearch only.
     enabled: true
   - name: DoControl
     careers_url: https://www.docontrol.io/careers
@@ -581,11 +586,13 @@ tracked_companies:
     careers_url: https://www.island.io/careers
     scan_method: websearch
     scan_query: site:www.island.io "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    notes: SSR careers page, no XHR job API (checked 2026-09-09). websearch only.
     enabled: true
   - name: Kovrr
     careers_url: https://www.kovrr.com/careers
     scan_method: websearch
     scan_query: site:www.kovrr.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    notes: SSR careers page, no XHR job API (checked 2026-09-09). websearch only.
     enabled: true
   - name: Lasso Security
     careers_url: https://www.lasso.security/careers
@@ -610,12 +617,14 @@ tracked_companies:
     careers_url: https://www.piiano.com/careers
     scan_method: websearch
     scan_query: site:www.piiano.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
-    enabled: true
+    notes: piiano.com/careers redirects to a16y.ai — company appears defunct/pivoted. Disabled 2026-09-09.
+    enabled: false
   - name: Prompt Security
     careers_url: https://www.prompt.security/careers
     scan_method: websearch
     scan_query: site:www.prompt.security "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
-    enabled: true
+    notes: Acquired by SentinelOne — careers page redirects to sentinelone.com/jobs. Disabled 2026-09-09.
+    enabled: false
   - name: Seemplicity
     careers_url: https://www.seemplicity.io/careers
     api: >-
@@ -625,6 +634,7 @@ tracked_companies:
     careers_url: https://www.sentinelone.com/careers/
     scan_method: websearch
     scan_query: site:www.sentinelone.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    notes: Custom/Phenom careers portal, no token-free JSON captured (checked 2026-09-09). websearch only.
     enabled: true
   - name: Silverfort
     careers_url: https://www.silverfort.com/careers/
@@ -635,11 +645,13 @@ tracked_companies:
     careers_url: https://vulcan.io/careers/
     scan_method: websearch
     scan_query: site:vulcan.io "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
-    enabled: true
+    notes: Acquired by Tenable (2025) — vulcan.io redirects to tenable.com. Disabled 2026-09-09.
+    enabled: false
   - name: Wing Security
-    careers_url: https://wing.security/careers
+    careers_url: https://withwings.ai/careers
     scan_method: websearch
-    scan_query: site:wing.security "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    scan_query: site:withwings.ai "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    notes: Rebranded to withwings.ai (2026). No public ATS JSON — websearch only (checked 2026-09-09).
     enabled: true
   - name: Zero Networks
     careers_url: https://zeronetworks.com/careers/
@@ -650,18 +662,18 @@ tracked_companies:
     careers_url: https://opussecurity.com/careers/
     scan_method: websearch
     scan_query: site:opussecurity.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
-    notes: Tel Aviv. Cloud security remediation.
+    notes: Tel Aviv. Cloud security remediation. No public ATS JSON (checked 2026-09-09) — websearch only.
     enabled: true
   - name: Noname Security
     careers_url: https://nonamesecurity.com/
     scan_method: websearch
     scan_query: site:nonamesecurity.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
-    notes: Tel Aviv/Palo Alto. API security.
-    enabled: true
+    notes: Acquired by Akamai (2024) — careers page redirects to akamai.com. Disabled 2026-09-09.
+    enabled: false
   - name: BlueVine
-    careers_url: https://www.bluevine.com/careers/
-    scan_method: websearch
-    scan_query: site:www.bluevine.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    careers_url: https://www.bluevine.com/careers
+    api: https://boards-api.greenhouse.io/v1/boards/bluevineisrael/jobs
+    notes: Tel Aviv. B2B fintech. Greenhouse board `bluevineisrael` (found via careers-page XHR 2026-09-09).
     enabled: true
   - name: Bridgewise
     careers_url: https://www.bridgewise.com/careers
@@ -679,6 +691,7 @@ tracked_companies:
     careers_url: https://www.onezero.co.il/careers
     scan_method: websearch
     scan_query: site:www.onezero.co.il "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    notes: SSR careers page (onezero.co.il), no XHR job API (checked 2026-09-09). websearch only.
     enabled: true
   - name: Papaya Global
     careers_url: https://www.papayaglobal.com/careers/
