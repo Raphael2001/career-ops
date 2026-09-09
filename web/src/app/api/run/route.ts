@@ -18,7 +18,15 @@ import { acquireTrackerWrite, releaseTrackerWrite } from "@/lib/core/run-registr
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const maxDuration = 800; // a real oferta evaluation / pdf-mode CV tailoring + render is heavy and multi-step
+// A real oferta evaluation / pdf-mode CV tailoring + render is heavy and
+// multi-step. Raised from 800 to 1800 for the free-tier LiteLLM backend: an
+// agentic evaluate run is 15-20+ model turns and the free pool's per-turn
+// latency (tens of seconds each) pushes a genuine run past 10 minutes — the
+// evaluate killMs below was lifted to 1500s to match, and that timer needs
+// real headroom under this cap. `next start` (self-hosted) treats this as
+// advisory, not a hard platform cutoff, so the killMs timers stay the real
+// bound; this just keeps the two consistent.
+export const maxDuration = 1800;
 
 export async function POST(req: Request) {
   let body: { kind?: string; input?: string; cliId?: string };
@@ -198,7 +206,7 @@ export async function POST(req: Request) {
       let lastCostUsd: number | null = null;
       // pdf-mode's agent only tailors content now (rendering moved to the
       // backend, #2172) — but its killMs still has to leave real headroom
-      // inside the route's overall maxDuration (800s): the render+mark phase
+      // inside the route's overall maxDuration (1800s): the render+mark phase
       // (renderPdf, below) starts only after this timer's window and has no
       // timeout of its own, so an agent that runs close to its full budget
       // would otherwise leave the platform's hard maxDuration cutoff to kill
@@ -206,7 +214,7 @@ export async function POST(req: Request) {
       // a Chromium PDF render normally takes low tens of seconds even with a
       // cold Playwright launch.
       //
-      // fix-portal gets the same 600s as pdf, not evaluate/research's 285s: it
+      // fix-portal gets the same 600s as pdf, not research's 285s: it
       // is a genuine multi-turn Bash+Edit loop (probe, edit portals.yml,
       // re-verify) with no render phase after, so it can use nearly the whole
       // maxDuration. On a slow/free model backend a single company that the
@@ -214,15 +222,19 @@ export async function POST(req: Request) {
       // measured reliably exceeding 285s before this run even reached its
       // "say so and stop" fallback — 285s was failing every such click.
       //
-      // evaluate gets the same 600s: it's the same shape of task (Bash/Read/
-      // WebFetch/WebSearch research, no render phase after) and was observed
-      // hitting the identical failure — reserve-report-num.mjs had already
-      // written reports/NNN-RESERVED.md, the agent was still mid-research at
-      // the 285s mark, got SIGTERM'd before ever reaching Write, and the run
-      // surfaced as "This evaluation didn't save a report" instead of a
-      // finished score. research stays at 285s: it has no Write step to reach
-      // and produces its result through the stream itself.
-      const killMs = kind === "pdf" || kind === "fix-portal" || kind === "evaluate" ? 600_000 : 285_000;
+      // evaluate gets 1500s — the longest of any kind. Same shape of task as
+      // research (Bash/Read/WebFetch/WebSearch, no render phase after) but it
+      // has a Write step to reach: reserve-report-num.mjs writes
+      // reports/NNN-RESERVED.md up front, then the agent must finish research
+      // AND write the full report before the timer fires or the run surfaces
+      // as "This evaluation didn't save a report". At 285s, then at 600s, the
+      // free-tier LiteLLM pool was still SIGTERM'ing mid-research on real
+      // multi-turn evals (tens of seconds per model turn × 15-20+ turns).
+      // 1500s is the budget that lets a genuine free-backend eval land its
+      // report; a real Anthropic key finishes in 1-2 min and never reaches it.
+      // research stays at 285s: no Write step, result comes through the stream.
+      const killMs =
+        kind === "evaluate" ? 1_500_000 : kind === "pdf" || kind === "fix-portal" ? 600_000 : 285_000;
       killer = setTimeout(() => {
         try { child.kill("SIGTERM"); } catch { /* ignore */ }
       }, killMs);
@@ -235,7 +247,7 @@ export async function POST(req: Request) {
           controller.enqueue(enc.encode(JSON.stringify(obj) + "\n"));
         } catch {
           // The client is gone. Stop the heartbeat here rather than waiting for
-          // close(): the child can still run for minutes (maxDuration 800s), and
+          // close(): the child can still run for many minutes (maxDuration 1800s), and
           // a user retrying a failed run would otherwise accumulate one live
           // timer per abandoned request.
           closed = true;
