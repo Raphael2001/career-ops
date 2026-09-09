@@ -16,7 +16,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 ARG GO_VERSION=1.23.4
 RUN set -eux; \
     apt-get update; \
-    apt-get install -y --no-install-recommends ca-certificates curl git tini cron jq latexmk texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended texlive-xetex; \
+    apt-get install -y --no-install-recommends ca-certificates curl git tini cron sudo jq latexmk texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended texlive-xetex; \
     arch="$(dpkg --print-architecture)"; \
     case "$arch" in \
       amd64)  go_arch=amd64 ;; \
@@ -46,6 +46,24 @@ RUN npm install -g --no-audit --no-fund @anthropic-ai/claude-code
 # The rest of the project is bind-mounted at runtime via docker compose,
 # so we don't COPY sources here — keeps the image generic and lets local
 # edits show up instantly inside the container.
+
+# Everything below runs as pwuser (uid 1000, matches the host's `claw` user),
+# not root -- the whole project is bind-mounted from the host (docker-compose.yml
+# `.:/app`), so a root-default container meant every file the app touched
+# (output/, data/, portals.yml, ...) came out root-owned on the host and
+# blocked the host user from writing those same paths outside Docker. This
+# applies to the main process AND to `docker compose exec`/`./cops exec`,
+# since both default to whatever USER is set here.
+#
+# The one thing that still needs root is starting the cron daemon itself
+# (binding /var/run/crond.pid, reading every user's crontab) -- container-start.sh
+# does that via this narrowly-scoped NOPASSWD sudo rule instead of running the
+# whole container as root for it. pwuser's own crontab needs no privilege at
+# all; cron then runs pwuser's jobs as pwuser once the daemon is up.
+RUN echo 'pwuser ALL=(root) NOPASSWD: /usr/sbin/cron' > /etc/sudoers.d/pwuser-cron \
+ && chmod 0440 /etc/sudoers.d/pwuser-cron
+
+USER pwuser
 
 ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["bash"]
