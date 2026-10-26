@@ -7,7 +7,7 @@
 // Level-1 loop without depending on scan.mjs's console output.
 
 import { readFileSync } from "node:fs";
-import { load } from "js-yaml";
+import { loadYaml as load } from "../lib/yaml-document.mjs";
 
 const portalsPath = process.argv[2] || "portals.yml";
 const doc = load(readFileSync(portalsPath, "utf8"));

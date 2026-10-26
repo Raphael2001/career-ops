@@ -38,13 +38,16 @@
  * files so tests never touch a real user CV.
  */
 
-import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath, pathToFileURL } from 'url';
+import { getCareerOpsRoot } from './path-resolver.mjs';
 import { normalizeTextKey } from './tracker-parse.mjs';
+import { replaceUserFile } from './tracker-utils.mjs';
 import { validateFlags } from './lib/cli-flags.mjs';
+import { isMainModule } from './lib/is-main-module.mjs';
 
-const CAREER_OPS = dirname(fileURLToPath(import.meta.url));
+const CAREER_OPS = getCareerOpsRoot();
 
 const CV_FILE = process.env.CAREER_OPS_CV || join(CAREER_OPS, 'cv.md');
 const ARTICLE_DIGEST_FILE = process.env.CAREER_OPS_ARTICLE_DIGEST || join(CAREER_OPS, 'article-digest.md');
@@ -256,11 +259,11 @@ async function main() {
     const written = [];
     try {
       if (payload.cv && out.result.cv?.status === 'added') {
-        writeFileSync(CV_FILE, out.cv);
+        replaceUserFile(CV_FILE, out.cv);
         written.push('cv.md');
       }
       if (payload.articleDigest && (out.result.articleDigest?.status === 'added' || out.result.articleDigest?.status === 'created')) {
-        writeFileSync(ARTICLE_DIGEST_FILE, out.articleDigest);
+        replaceUserFile(ARTICLE_DIGEST_FILE, out.articleDigest);
         written.push('article-digest.md');
       }
     } catch (e) {
@@ -273,6 +276,6 @@ async function main() {
 }
 
 // Only run main() when invoked directly, not when imported by tests.
-if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+if (isMainModule(import.meta.url)) {
   main();
 }

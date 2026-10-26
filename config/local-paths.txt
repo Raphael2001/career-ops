@@ -1,0 +1,13 @@
+# Files this fork owns that upstream (santifer/career-ops) does not ship.
+# Treated like cv.md: `update-system.mjs apply` never writes them, and
+# validate-system-paths-coverage.mjs does not report them as orphans.
+# Tracked on purpose (see the `!config/local-paths.txt` rule in .gitignore) so CI
+# sees it; format documented in config/local-paths.example.txt.
+
+# Self-hosted deployment: docker-compose companions, litellm proxy, discovery cron
+deploy/
+# Infra monitoring dashboard (:4002)
+monitor/
+# Fork scripts / modes
+prune-pipeline.mjs
+modes/explore-ai.md

@@ -24,7 +24,9 @@
 
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import * as yaml from 'js-yaml';
+import { loadYaml } from './lib/yaml-document.mjs';
+import { isMainModule } from './lib/is-main-module.mjs';
+import { validateFlags } from './lib/cli-flags.mjs';
 import { buildTitleFilter } from './title-keywords.mjs';
 import { buildLocationFilter } from './scan.mjs';
 
@@ -94,8 +96,19 @@ export function pruneLines(raw, titleFilter, locationFilter) {
   return { keptText: kept.join('\n'), removed };
 }
 
+const KNOWN_FLAGS = ['--write', '--summary', '--file', '--portals-file', '--help', '-h'];
+const VALUE_FLAGS = ['--file', '--portals-file'];
+const USAGE = `Usage:
+  node prune-pipeline.mjs                       # preview, JSON envelope
+  node prune-pipeline.mjs --summary             # preview, human-readable table
+  node prune-pipeline.mjs --write               # apply the removal
+  node prune-pipeline.mjs --file <path>         # use a specific pipeline file
+  node prune-pipeline.mjs --portals-file <path> # use a specific portals file
+  node prune-pipeline.mjs --help                # print this usage block and exit`;
+
 function main() {
   const args = process.argv.slice(2);
+  validateFlags(args, KNOWN_FLAGS, USAGE, { valueFlags: VALUE_FLAGS, requireOperand: true });
   const write = args.includes('--write');
   const summary = args.includes('--summary');
   const fileFlag = args.indexOf('--file');
@@ -108,7 +121,7 @@ function main() {
     process.exitCode = 1;
     return;
   }
-  const config = existsSync(portalsPath) ? yaml.load(readFileSync(portalsPath, 'utf8')) : {};
+  const config = existsSync(portalsPath) ? loadYaml(readFileSync(portalsPath, 'utf8')) : {};
   const titleFilter = buildTitleFilter(config?.title_filter);
   const locationFilter = buildLocationFilter(config?.location_filter);
 
@@ -131,6 +144,6 @@ function main() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   main();
 }

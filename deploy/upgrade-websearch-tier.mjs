@@ -21,7 +21,7 @@
 // Usage: node deploy/upgrade-websearch-tier.mjs [--dry-run]
 
 import { readFileSync, writeFileSync, renameSync } from "node:fs";
-import { load } from "js-yaml";
+import { loadYaml as load } from "../lib/yaml-document.mjs";
 import { runDiscovery, renderPortalEntry } from "../discover-ats.mjs";
 
 const PORTALS_PATH = "portals.yml";
