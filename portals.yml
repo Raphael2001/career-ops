@@ -584,10 +584,8 @@ tracked_companies:
     api: https://www.comeet.co/careers-api/2.0/company/67.007/positions?token=7672C6A163533D11D9C429F33D10250333D1
     enabled: true
   - name: Island
-    careers_url: https://www.island.io/careers
-    scan_method: websearch
-    scan_query: site:www.island.io "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
-    notes: SSR careers page, no XHR job API (checked 2026-09-09). websearch only.
+    careers_url: https://job-boards.greenhouse.io/island
+    api: https://boards-api.greenhouse.io/v1/boards/island/jobs
     enabled: true
   - name: Kovrr
     careers_url: https://www.kovrr.com/careers
@@ -866,8 +864,7 @@ tracked_companies:
     enabled: true
   - name: Anecdotes
     careers_url: https://www.anecdotes.ai/careers
-    scan_method: websearch
-    scan_query: site:www.anecdotes.ai "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/3A.000/positions
     enabled: true
   - name: Anyword
     careers_url: https://www.anyword.com/careers
@@ -884,8 +881,7 @@ tracked_companies:
     enabled: true
   - name: Coralogix
     careers_url: https://coralogix.com/careers/
-    scan_method: websearch
-    scan_query: site:coralogix.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/Coralogix/positions
     enabled: true
   - name: D-ID
     careers_url: https://apply.workable.com/d-id
@@ -965,8 +961,7 @@ tracked_companies:
     enabled: true
   - name: AI21 Labs
     careers_url: https://www.ai21.com/careers/
-    scan_method: websearch
-    scan_query: site:www.ai21.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/E6.001/positions?token=6E12946DC230276E13DE93708294637083708
     notes: Tel Aviv. Foundation model / generative AI lab (Jurassic, Jamba).
     enabled: true
   - name: Overwolf
