@@ -561,8 +561,7 @@ tracked_companies:
     enabled: true
   - name: Cyolo
     careers_url: https://cyolo.io/careers/
-    scan_method: websearch
-    scan_query: site:cyolo.io "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/cyolo/positions
     notes: Self-proxied Comeet at cyolo.io/api/v1/comeet/* (non-standard host, no provider). websearch only (2026-09-09).
     enabled: true
   - name: Deep Instinct
