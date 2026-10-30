@@ -997,8 +997,7 @@ tracked_companies:
     enabled: true
   - name: Guesty
     careers_url: https://www.guesty.com/careers/
-    scan_method: websearch
-    scan_query: site:www.guesty.com "Software Engineer" OR "Backend" OR "Full Stack" OR "Developer"
+    api: https://www.comeet.co/careers-api/2.0/company/10.000/positions
     enabled: true
   - name: Hibob
     careers_url: https://careers.smartrecruiters.com/hibob
